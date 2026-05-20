@@ -1069,8 +1069,10 @@ window.appState = {
   accent: '#c8a567',
   body: '#0a0a0c',
   bloomTweak: 1.0,
-  lerpStrength: 0.05,
-  scrollLength: 1.0,
+  // Mobile / touch gets gentler defaults: longer scroll spacer and more
+  // camera inertia, so a fast flick doesn't rush through multiple chapters.
+  lerpStrength: (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth < 768) ? 0.035 : 0.05,
+  scrollLength:  (/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth < 768) ? 1.8 : 1.0,
   language: localStorage.getItem('gp-lang') || 'he',
   hotspots: {
     engine: [
@@ -2444,15 +2446,22 @@ composer.addPass(bloom);
 composer.addPass(new OutputPass());
 
 /* ───────── Scroll engine ───────── */
+// Two-stage smoothing: raw scroll input → smoothed target → camera progress.
+// rawScrollProgress is the direct scroll fraction (jumps on flicks).
+// targetProgress eases toward rawScrollProgress (absorbs flick spikes).
+// currentProgress lerps toward targetProgress for camera (final smoothing).
+let rawScrollProgress = 0;
 let targetProgress = 0;
 let currentProgress = 0;
 
 function onScroll() {
   const max = document.documentElement.scrollHeight - window.innerHeight;
-  targetProgress = max > 0 ? window.scrollY / max : 0;
+  rawScrollProgress = max > 0 ? window.scrollY / max : 0;
 }
 window.addEventListener('scroll', onScroll, { passive: true });
 onScroll();
+targetProgress = rawScrollProgress;
+currentProgress = rawScrollProgress;
 
 function getCamAtProgress(p) {
   for (let i = 0; i < CAM.length - 1; i++) {
@@ -2500,6 +2509,9 @@ window.appState.setScrollLength = (v) => {
   document.getElementById('scroll-spacer').style.height = (500 * v) + 'vh';
   onScroll();
 };
+// Apply initial scrollLength (set above based on device) to the spacer
+window.appState.setScrollLength(window.appState.scrollLength);
+
 window.appState.jumpTo = (p) => {
   const max = document.documentElement.scrollHeight - window.innerHeight;
   window.scrollTo({ top: max * p, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
@@ -2525,8 +2537,12 @@ function animate(now) {
 
   if (prefersReducedMotion) {
     // Snap to target (no inertia)
+    targetProgress = rawScrollProgress;
     currentProgress = targetProgress;
   } else {
+    // Stage 1: absorb raw scroll spikes (mobile flicks) into the target
+    targetProgress += (rawScrollProgress - targetProgress) * 0.08;
+    // Stage 2: camera LERP toward the smoothed target
     currentProgress += (targetProgress - currentProgress) * window.appState.lerpStrength;
   }
   window.appState.progress = currentProgress;
