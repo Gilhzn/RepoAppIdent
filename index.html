@@ -763,13 +763,13 @@ img { display: block; max-width: 100%; }
   inset-inline-end: clamp(16px, 2vw, 32px);
   z-index: 50;
   width: min(320px, calc(100vw - 32px));
-  background: transparent;
-  border: 1px solid rgba(200, 165, 103, 0.30);
+  background: #0a0a0c;
+  border: 1px solid rgba(200, 165, 103, 0.35);
   font-family: var(--font-label);
   font-size: 11px;
   color: #ffffff;
   transition: transform 320ms var(--ease), opacity 320ms var(--ease);
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+  box-shadow: 0 24px 60px -16px rgba(0, 0, 0, 0.7);
 }
 .tweaks.minimized {
   transform: translateY(calc(100% + 30px));
