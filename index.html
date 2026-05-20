@@ -1,0 +1,2901 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#050505" />
+<meta name="description" content="General Parts — אולם תצוגה דיגיטלי לחלפי רכב יוקרתיים: מנוע, בלמים, מתלים. הנדסה מדויקת, ביצועים שאין להתפשר עליהם." />
+<title>General Parts — אולם תצוגה דיגיטלי</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&family=Heebo:wght@300;400;500;600;700;800;900&family=Assistant:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" />
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+/* ───────── Reset & tokens ───────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #050505;
+  --bg-1: #0a0a0a;
+  --ink: #f4f1ea;
+  --ink-dim: #8a857c;
+  --ink-mute: #4a463f;
+  --rule: rgba(244, 241, 234, 0.08);
+  --rule-strong: rgba(244, 241, 234, 0.18);
+  --gold: #c8a567;
+  --gold-glow: rgba(200, 165, 103, 0.45);
+
+  --font-display: 'Bebas Neue', 'Heebo', 'Assistant', sans-serif;
+  --font-sans-ltr: 'Inter', system-ui, sans-serif;
+  --font-sans-rtl: 'Heebo', 'Assistant', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --ease: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans-rtl);
+  font-size: 16px;
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html[lang="en"], html[dir="ltr"] { font-family: var(--font-sans-ltr); }
+body { overflow-x: clip; }   /* CRITICAL: do NOT use overflow-x: hidden */
+
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: none; cursor: pointer; }
+img { display: block; max-width: 100%; }
+:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+/* ───────── Stage layers ───────── */
+#scroll-spacer {
+  position: relative;
+  width: 100%;
+  height: 500vh;
+  pointer-events: none;
+}
+
+#webgl {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  display: block;
+}
+
+#root {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  font-family: inherit;
+}
+
+#root > * { pointer-events: auto; }
+#root .pass-through, #root .pass-through * { pointer-events: none; }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
+
+/* ───────── Preloader ───────── */
+.preloader {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  transition: opacity 800ms var(--ease), visibility 0s linear 800ms;
+}
+.preloader.done { opacity: 0; visibility: hidden; pointer-events: none; }
+.preloader__inner { text-align: center; padding-inline: 24px; max-width: 720px; }
+.preloader__wordmark {
+  font-family: var(--font-display);
+  font-size: clamp(56px, 14vw, 200px);
+  letter-spacing: 0.12em;
+  line-height: 0.9;
+  background: linear-gradient(180deg, var(--ink) 0%, var(--ink) 50%, var(--gold) 50%, var(--gold) 100%);
+  background-size: 100% 200%;
+  background-position: 0% 0%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  transition: background-position 200ms linear;
+}
+.preloader__bar {
+  margin: 28px auto 0;
+  width: min(380px, 70vw);
+  height: 1px;
+  background: var(--rule);
+  position: relative;
+  overflow: hidden;
+}
+.preloader__bar::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  background: var(--gold);
+  transform-origin: left center;
+  transform: scaleX(var(--p, 0));
+  transition: transform 200ms linear;
+}
+[dir="rtl"] .preloader__bar::after { transform-origin: right center; }
+.preloader__caption {
+  margin-top: 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.30em;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+}
+
+/* ───────── Top bar ───────── */
+.topbar {
+  position: fixed;
+  top: 0;
+  inset-inline: 0;
+  height: 64px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding-inline: clamp(16px, 4vw, 48px);
+  z-index: 30;
+  background: linear-gradient(180deg, rgba(5,5,5,0.8) 0%, rgba(5,5,5,0) 100%);
+}
+.topbar__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  letter-spacing: 0.20em;
+}
+.topbar__brand .dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 12px 2px var(--gold-glow);
+  animation: pulse 2.6s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+.topbar__nav {
+  display: flex;
+  gap: clamp(12px, 2.4vw, 28px);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.topbar__nav button {
+  position: relative;
+  padding-block: 6px;
+  transition: color 240ms var(--ease);
+}
+.topbar__nav button.active,
+.topbar__nav button:hover { color: var(--ink); }
+.topbar__nav button.active::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: -2px;
+  height: 1px;
+  background: var(--gold);
+}
+.topbar__tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  justify-content: flex-end;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.topbar__tools .lang-toggle {
+  border: 1px solid var(--rule-strong);
+  padding: 6px 12px;
+  color: var(--ink);
+  transition: border-color 240ms var(--ease), color 240ms var(--ease);
+}
+.topbar__tools .lang-toggle:hover { border-color: var(--gold); color: var(--gold); }
+.icon-btn {
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+  color: var(--ink-dim);
+  transition: color 240ms var(--ease);
+}
+.icon-btn:hover { color: var(--ink); }
+
+/* ───────── Side rail ───────── */
+.siderail {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  inset-inline-end: clamp(14px, 2.4vw, 28px);
+  z-index: 25;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.siderail__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ink-mute);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  transition: color 320ms var(--ease);
+}
+.siderail__item .bar {
+  width: 24px;
+  height: 1px;
+  background: var(--rule-strong);
+  transition: width 320ms var(--ease), background 320ms var(--ease);
+}
+.siderail__item.active { color: var(--ink); }
+.siderail__item.active .bar { width: 40px; background: var(--gold); }
+.siderail__item:hover { color: var(--ink); }
+.siderail__item .label { white-space: nowrap; }
+
+/* ───────── Info card ───────── */
+.infocard {
+  position: fixed;
+  bottom: 100px;
+  inset-inline-start: clamp(16px, 4vw, 48px);
+  z-index: 25;
+  max-width: min(440px, 80vw);
+  background: rgba(10, 10, 10, 0.55);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--rule);
+  border-inline-start: 1px solid var(--gold);
+  padding: clamp(18px, 2.2vw, 26px);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 600ms var(--ease), transform 600ms var(--ease);
+}
+.infocard.visible { opacity: 1; transform: translateY(0); }
+.infocard__index {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.30em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.infocard__title {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4vw, 56px);
+  letter-spacing: 0.02em;
+  line-height: 1.0;
+  margin-bottom: 14px;
+  text-wrap: balance;
+  color: var(--ink);
+}
+.infocard__body {
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--ink-dim);
+  margin-bottom: 18px;
+}
+.infocard__specs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding-block-start: 16px;
+  border-block-start: 1px solid var(--rule);
+}
+.infocard__spec-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-bottom: 4px;
+}
+.infocard__spec-value {
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.infocard__cta {
+  margin-top: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 22px;
+  border: 1px solid var(--rule-strong);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--ink);
+  transition: border-color 240ms var(--ease), color 240ms var(--ease), background 240ms var(--ease);
+}
+.infocard__cta::after { content: ' →'; }
+[dir="rtl"] .infocard__cta::after { content: ' ←'; }
+.infocard__cta:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: rgba(200, 165, 103, 0.04);
+}
+
+/* ───────── Bottom dock ───────── */
+.dock {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 25;
+  padding: 16px clamp(16px, 4vw, 48px) 20px;
+  background: linear-gradient(0deg, rgba(5,5,5,0.85) 0%, rgba(5,5,5,0) 100%);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: end;
+  gap: clamp(16px, 3vw, 36px);
+}
+.dock__progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+.dock__progress .label-top { color: var(--ink-mute); }
+.dock__progress .number {
+  font-family: var(--font-display);
+  font-size: clamp(40px, 4.4vw, 56px);
+  font-feature-settings: 'tnum';
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  line-height: 0.95;
+}
+.dock__timeline {
+  height: 28px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.dock__timeline-track {
+  position: relative;
+  width: 100%;
+  height: 1px;
+  background: var(--rule);
+}
+.dock__timeline-fill {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  background: var(--gold);
+  transform-origin: left center;
+  transform: scaleX(var(--p, 0));
+}
+[dir="rtl"] .dock__timeline-fill { transform-origin: right center; }
+.dock__timeline-dots {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+}
+.dock__timeline-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--rule-strong);
+  transform: translate(-50%, 0);
+  cursor: pointer;
+  transition: border-color 200ms var(--ease), background 200ms var(--ease);
+}
+[dir="rtl"] .dock__timeline-dot { transform: translate(50%, 0); }
+.dock__timeline-dot.active {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+.dock__timeline-dot:hover { border-color: var(--gold); }
+.dock__timeline-labels {
+  position: absolute;
+  inset-inline: 0;
+  top: -18px;
+  display: flex;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  pointer-events: none;
+}
+.dock__timeline-label {
+  position: absolute;
+  transform: translateX(-50%);
+}
+[dir="rtl"] .dock__timeline-label { transform: translateX(50%); }
+.dock__scroll {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.dock__scroll .line {
+  width: 1px;
+  height: 32px;
+  background: linear-gradient(180deg, transparent 0%, var(--gold) 30%, var(--gold) 70%, transparent 100%);
+  animation: scroll-line 2s ease-in-out infinite;
+}
+@keyframes scroll-line {
+  0%, 100% { transform: scaleY(0.4); opacity: 0.4; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+
+/* ───────── Hotspots ───────── */
+.hotspot {
+  position: fixed;
+  top: 0;
+  left: 0;  /* JS-positioned via translate3d — always from viewport left */
+  width: 44px;
+  height: 44px;
+  z-index: 20;
+  pointer-events: auto;
+  transition: opacity 320ms var(--ease);
+}
+.hotspot__dot {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--gold);
+  background: rgba(200, 165, 103, 0.08);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-radius: 50%;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.hotspot__dot::before,
+.hotspot__dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--gold);
+  border-radius: 50%;
+  animation: ripple 2.4s ease-out infinite;
+}
+.hotspot__dot::after { animation-delay: 1.2s; }
+@keyframes ripple {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+.hotspot__dot-inner {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 8px 2px var(--gold-glow);
+}
+.hotspot__label {
+  position: absolute;
+  top: 50%;
+  inset-inline-start: 56px;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: rgba(5, 5, 5, 0.85);
+  border: 1px solid var(--rule-strong);
+  padding: 6px 10px;
+  opacity: 0;
+  transition: opacity 320ms var(--ease);
+}
+.hotspot:hover .hotspot__label,
+.hotspot.active .hotspot__label { opacity: 1; }
+
+/* ───────── Outro ───────── */
+.outro {
+  position: fixed;
+  inset: 0;
+  z-index: 28;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(ellipse at center, rgba(5,5,5,0) 30%, rgba(0,0,0,0.85) 100%);
+  opacity: 0;
+  transition: opacity 600ms var(--ease);
+  pointer-events: none;
+}
+.outro.visible { opacity: 1; pointer-events: auto; }
+.outro__inner {
+  text-align: center;
+  padding-inline: 24px;
+  max-width: 900px;
+}
+.outro__title {
+  font-family: var(--font-display);
+  font-size: clamp(48px, 10vw, 160px);
+  letter-spacing: 0.04em;
+  line-height: 0.92;
+  text-wrap: balance;
+  margin-bottom: 24px;
+}
+.outro__title .gold-italic {
+  color: var(--gold);
+  font-style: italic;
+}
+.outro__body {
+  font-size: clamp(15px, 1.4vw, 18px);
+  color: var(--ink-dim);
+  line-height: 1.6;
+  max-width: 560px;
+  margin: 0 auto 36px;
+}
+.outro__ctas {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  border: 1px solid var(--rule-strong);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink);
+  transition: border-color 240ms var(--ease), color 240ms var(--ease), background 240ms var(--ease);
+}
+.btn:hover { border-color: var(--gold); color: var(--gold); background: rgba(200,165,103,0.04); }
+.btn--primary { background: var(--gold); border-color: var(--gold); color: #0a0a0a; }
+.btn--primary:hover { background: #d9b97f; border-color: #d9b97f; color: #0a0a0a; }
+.outro__return {
+  display: block;
+  margin-top: 30px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  transition: color 240ms var(--ease);
+}
+.outro__return:hover { color: var(--gold); }
+
+/* ───────── Decorative ───────── */
+.decorative {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  overflow: hidden;
+}
+.decorative__bg-number {
+  position: absolute;
+  bottom: -3vw;
+  inset-inline-end: -2vw;
+  font-family: var(--font-display);
+  font-size: clamp(280px, 38vw, 580px);
+  letter-spacing: -0.02em;
+  -webkit-text-stroke: 1px rgba(244, 241, 234, 0.04);
+  color: transparent;
+  line-height: 0.85;
+  user-select: none;
+  pointer-events: none;
+}
+[dir="rtl"] .decorative__bg-number { inset-inline-end: auto; inset-inline-start: -2vw; }
+.decorative__pool {
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  border-radius: 50%;
+  filter: blur(60px);
+  mix-blend-mode: screen;
+  opacity: 0.4;
+}
+.decorative__pool--1 { top: -25vw; left: -10vw; background: radial-gradient(circle, rgba(200,165,103,0.5) 0%, transparent 70%); }
+.decorative__pool--2 { bottom: -30vw; right: -15vw; background: radial-gradient(circle, rgba(109, 167, 217, 0.4) 0%, transparent 70%); }
+.decorative__pool--3 { top: 40vh; left: 60vw; width: 36vw; height: 36vw; background: radial-gradient(circle, rgba(255, 210, 138, 0.4) 0%, transparent 70%); }
+
+.decorative__grain {
+  position: absolute;
+  inset: -20%;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.92' numOctaves='2' stitchTiles='stitch'/></filter><rect width='200' height='200' filter='url(%23n)' opacity='0.85'/></svg>");
+  background-repeat: repeat;
+  mix-blend-mode: overlay;
+  opacity: 0.5;
+  animation: grain 8s steps(8) infinite;
+}
+@keyframes grain {
+  0%   { transform: translate(0, 0); }
+  10%  { transform: translate(-2%, -2%); }
+  20%  { transform: translate(2%, -1%); }
+  30%  { transform: translate(-1%, 3%); }
+  40%  { transform: translate(2%, 2%); }
+  50%  { transform: translate(-2%, 1%); }
+  60%  { transform: translate(1%, -3%); }
+  70%  { transform: translate(-3%, 0%); }
+  80%  { transform: translate(2%, 3%); }
+  90%  { transform: translate(-1%, -1%); }
+  100% { transform: translate(0, 0); }
+}
+
+.decorative__vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.55) 100%);
+}
+
+.reticle {
+  position: fixed;
+  top: 50%;
+  inset-inline-start: 50%;
+  transform: translate(-50%, -50%);
+  width: 220px; height: 220px;
+  z-index: 15;
+  pointer-events: none;
+  opacity: 0.55;
+  transition: opacity 600ms var(--ease);
+}
+[dir="rtl"] .reticle { transform: translate(50%, -50%); }
+.reticle.hidden { opacity: 0; }
+
+/* ───────── Tweaks panel ───────── */
+.tweaks {
+  position: fixed;
+  bottom: 100px;
+  inset-inline-end: clamp(16px, 2vw, 32px);
+  z-index: 50;
+  width: min(320px, calc(100vw - 32px));
+  background: rgba(10, 10, 10, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--rule-strong);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink);
+  transition: transform 320ms var(--ease), opacity 320ms var(--ease);
+}
+.tweaks.minimized {
+  transform: translateY(calc(100% + 30px));
+  opacity: 0;
+  pointer-events: none;
+}
+.tweaks__handle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--rule);
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  font-size: 10px;
+  color: var(--ink-dim);
+  cursor: move;
+}
+.tweaks__close {
+  width: 24px; height: 24px;
+  display: grid; place-items: center;
+  color: var(--ink-mute);
+  cursor: pointer;
+}
+.tweaks__close:hover { color: var(--ink); }
+.tweaks__body {
+  max-height: calc(100vh - 240px);
+  overflow-y: auto;
+  padding: 14px;
+}
+.tweaks__section { margin-bottom: 18px; }
+.tweaks__section:last-child { margin-bottom: 0; }
+.tweaks__section h4 {
+  font-size: 9px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+.tweaks__swatches {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tweaks__swatch {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 200ms;
+  position: relative;
+}
+.tweaks__swatch.active { border-color: var(--ink); }
+.tweaks__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.tweaks__row label {
+  flex: 1 0 80px;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.tweaks__row input[type="range"] {
+  flex: 1;
+  appearance: none;
+  height: 2px;
+  background: var(--rule-strong);
+  outline: none;
+  cursor: pointer;
+}
+.tweaks__row input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--gold);
+  cursor: pointer;
+}
+.tweaks__row input[type="range"]::-moz-range-thumb {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--gold);
+  cursor: pointer;
+  border: none;
+}
+.tweaks__row .value {
+  font-size: 10px;
+  color: var(--ink);
+  min-width: 36px;
+  text-align: end;
+}
+.tweaks__radios { display: flex; gap: 14px; }
+.tweaks__radios label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--ink);
+}
+.tweaks__radios input[type="radio"] { accent-color: var(--gold); }
+.tweaks__jumps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.tweaks__jumps button {
+  padding: 8px;
+  border: 1px solid var(--rule);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  transition: border-color 200ms, color 200ms;
+}
+.tweaks__jumps button:hover { border-color: var(--gold); color: var(--ink); }
+
+.tweaks__fab {
+  position: fixed;
+  bottom: 110px;
+  inset-inline-end: clamp(16px, 2vw, 32px);
+  z-index: 49;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: var(--bg-1);
+  border: 1px solid var(--rule-strong);
+  display: grid;
+  place-items: center;
+  color: var(--ink-dim);
+  cursor: pointer;
+  transition: border-color 200ms, color 200ms;
+}
+.tweaks__fab:hover { border-color: var(--gold); color: var(--gold); }
+
+/* ───────── Skip link ───────── */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  inset-inline-start: 10px;
+  background: var(--gold);
+  color: #0a0a0a;
+  padding: 8px 14px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  z-index: 1001;
+  transition: top 200ms;
+}
+.skip-link:focus { top: 10px; }
+
+/* ───────── Mobile ───────── */
+@media (max-width: 768px) {
+  .topbar { height: 56px; }
+  .topbar__brand { font-size: 18px; letter-spacing: 0.16em; }
+  .topbar__nav { display: none; }
+  .topbar__tools { gap: 10px; }
+  .topbar__tools .lang-toggle { padding: 5px 10px; font-size: 10px; }
+
+  .siderail { display: none; }
+
+  .infocard {
+    bottom: 140px;
+    inset-inline-start: 12px;
+    inset-inline-end: 12px;
+    max-width: none;
+    padding: 16px;
+  }
+  .infocard__title { font-size: 28px; }
+  .infocard__body { font-size: 14px; }
+  .infocard__specs { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .infocard__cta { padding: 10px 16px; }
+
+  .dock {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px 12px 14px;
+  }
+  .dock__progress { flex-direction: row; align-items: baseline; gap: 12px; }
+  .dock__progress .number { font-size: 32px; }
+  .dock__scroll { display: none; }
+  .dock__timeline-labels { display: none; }
+
+  .hotspot { width: 36px; height: 36px; }
+  .hotspot__label { font-size: 9px; padding: 5px 8px; inset-inline-start: 46px; }
+
+  .outro__title { font-size: clamp(40px, 13vw, 80px); }
+  .outro__body { font-size: 14px; }
+  .btn { padding: 12px 20px; font-size: 10px; }
+
+  .reticle { width: 140px; height: 140px; }
+
+  .tweaks { width: calc(100vw - 24px); inset-inline-end: 12px; bottom: 120px; }
+  .tweaks__fab { bottom: 140px; }
+
+  .decorative__bg-number { font-size: clamp(180px, 50vw, 360px); }
+}
+
+@media (max-width: 480px) {
+  .preloader__wordmark { font-size: clamp(44px, 16vw, 88px); }
+  .infocard { bottom: 130px; padding: 14px; }
+  .infocard__specs { grid-template-columns: 1fr; }
+}
+
+/* ───────── Reduced motion ───────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.1ms !important;
+    scroll-behavior: auto !important;
+  }
+  .decorative__grain { display: none; }
+  .topbar__brand .dot { animation: none; }
+  .dock__scroll .line { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#content">דלג לתוכן</a>
+
+<div id="scroll-spacer" aria-hidden="true"></div>
+<canvas id="webgl" aria-label="אולם תצוגה תלת-ממדי של חלפי רכב"></canvas>
+<div id="root" role="main" aria-label="ממשק אולם תצוגה"></div>
+
+<!-- React + Babel from CDN -->
+<script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- Three.js scene                                                    -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+/* ───────── App state (shared with React HUD) ───────── */
+window.appState = {
+  progress: 0,
+  current: 0,
+  chapter: 0,
+  loaded: 0,
+  total: 100,
+  ready: false,
+  accent: '#c8a567',
+  body: '#0a0a0c',
+  bloomTweak: 1.0,
+  lerpStrength: 0.08,
+  scrollLength: 1.0,
+  language: localStorage.getItem('gp-lang') || 'he',
+  hotspots: {
+    engine: [
+      { name: 'hsValveCover', pos: [0, 1.22, -1.55] },
+      { name: 'hsPlenum',     pos: [0, 1.42, -1.55] },
+      { name: 'hsPulleys',    pos: [0, 0.92, -1.83] },
+    ],
+    brakes: [
+      { name: 'hsCaliper', pos: [0.83, 0.55, -1.155] },
+      { name: 'hsDisc',    pos: [0.83, 0.18, -1.155] },
+    ],
+    suspension: [
+      { name: 'hsKnob',   pos: [0.83, 0.85, -1.155] },
+      { name: 'hsSpring', pos: [0.83, 0.40, -1.155] },
+    ],
+  },
+  /* Mutators set later by three.js scene */
+  setAccent: null,
+  setBody: null,
+  setBloom: null,
+  setLerp: null,
+  setScrollLength: null,
+  jumpTo: null,
+  setLanguage: (lang) => {
+    window.appState.language = lang;
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'he' ? 'rtl' : 'ltr';
+    localStorage.setItem('gp-lang', lang);
+    window.dispatchEvent(new CustomEvent('app:lang', { detail: lang }));
+  },
+};
+
+// Apply initial language to <html>
+window.appState.setLanguage(window.appState.language);
+
+/* ───────── Utilities ───────── */
+const easeInOut = (t) => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+const smoothstep = (a, b, x) => {
+  const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
+const partOpacityFor = (p, [a, b, c, d]) =>
+  Math.min(smoothstep(a, b, p), 1 - smoothstep(c, d, p));
+
+const lerp = (a, b, t) => a + (b - a) * t;
+const lerpVec3 = (out, a, b, t) => {
+  out.x = lerp(a[0], b[0], t);
+  out.y = lerp(a[1], b[1], t);
+  out.z = lerp(a[2], b[2], t);
+};
+
+const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth < 768;
+
+/* ───────── CAM milestones (verbatim from spec) ───────── */
+const CAM = [
+  { p: 0.00, pos: [ 5.4,  1.55, -4.6 ], tgt: [ 0,    0.50, -0.2  ], fov: 34 },
+  { p: 0.14, pos: [ 4.0,  1.30, -3.8 ], tgt: [-0.1,  0.55, -0.5  ], fov: 32 },
+  { p: 0.24, pos: [ 2.3,  1.35, -2.4 ], tgt: [ 0,    1.05, -1.55 ], fov: 30 },
+  { p: 0.34, pos: [ 1.70, 2.00, -2.30], tgt: [ 0,    1.05, -1.55 ], fov: 30 },
+  { p: 0.42, pos: [ 1.85, 1.55, -2.55], tgt: [ 0,    0.95, -1.55 ], fov: 28 },
+  { p: 0.50, pos: [ 4.8,  1.60, -3.8 ], tgt: [ 0.2,  0.65, -1.0  ], fov: 38 },
+  { p: 0.56, pos: [ 2.75, 0.65, -2.20], tgt: [ 0.83, 0.36, -1.155], fov: 30 },
+  { p: 0.62, pos: [ 1.80, 0.42, -1.65], tgt: [ 0.83, 0.36, -1.155], fov: 24 },
+  { p: 0.70, pos: [ 4.6,  1.30, -2.6 ], tgt: [ 0.4,  0.55, -0.8  ], fov: 38 },
+  { p: 0.76, pos: [ 2.20, 0.95, -0.45], tgt: [ 0.83, 0.55, -1.155], fov: 30 },
+  { p: 0.82, pos: [ 1.50, 0.70, -0.50], tgt: [ 0.83, 0.55, -1.155], fov: 28 },
+  { p: 0.92, pos: [ 5.2,  1.55,  2.0 ], tgt: [ 0,    0.55, -0.4  ], fov: 32 },
+  { p: 1.00, pos: [-5.8,  2.45, -6.4 ], tgt: [ 0,    0.6,   0    ], fov: 42 },
+];
+
+/* ───────── Scene ───────── */
+const canvas = document.getElementById('webgl');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x040404);
+scene.fog = new THREE.Fog(0x040404, 16, 32);
+
+const camera = new THREE.PerspectiveCamera(34, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(...CAM[0].pos);
+const camTarget = new THREE.Vector3(...CAM[0].tgt);
+
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: true,
+  alpha: false,
+  preserveDrawingBuffer: true,
+  powerPreference: 'high-performance',
+});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
+renderer.setSize(window.innerWidth, window.innerHeight, false);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.92;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+/* ───────── Lights ───────── */
+const hemi = new THREE.HemisphereLight(0xfff1d9, 0x05050a, 0.14);
+scene.add(hemi);
+
+const keyLight = new THREE.DirectionalLight(0xfff5e0, 2.4);
+keyLight.position.set(4, 9, 5);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(1536, 1536);
+keyLight.shadow.camera.left = -6;
+keyLight.shadow.camera.right = 6;
+keyLight.shadow.camera.top = 6;
+keyLight.shadow.camera.bottom = -6;
+keyLight.shadow.bias = -0.0005;
+scene.add(keyLight);
+
+const rimLight = new THREE.SpotLight(0xc8a567, 12, 30, Math.PI * 0.18, 0.6, 1);
+rimLight.position.set(-7, 5, 4);
+const rimTarget = new THREE.Object3D();
+rimTarget.position.set(0, 0.55, -0.3);
+scene.add(rimTarget);
+rimLight.target = rimTarget;
+scene.add(rimLight);
+
+const fillCool = new THREE.PointLight(0x6da7d9, 6, 12);
+fillCool.position.set(-3, 1.8, -4.5);
+scene.add(fillCool);
+
+const topSoft = new THREE.DirectionalLight(0xffffff, 1.1);
+topSoft.position.set(0, 10, 0);
+scene.add(topSoft);
+
+const warmUnder = new THREE.PointLight(0xffd28a, 2.4, 4);
+warmUnder.position.set(0, 0.3, -1.0);
+scene.add(warmUnder);
+
+/* Per-part vitrine spotlights */
+const vitrineEngine = new THREE.SpotLight(0xfff2dc, 0, 6, Math.PI * 0.22, 0.5, 1);
+vitrineEngine.position.set(0, 3.5, -1.55);
+const vTargetEngine = new THREE.Object3D();
+vTargetEngine.position.set(0, 1.05, -1.55);
+scene.add(vTargetEngine);
+vitrineEngine.target = vTargetEngine;
+scene.add(vitrineEngine);
+
+const vitrineBrakes = new THREE.SpotLight(0xfff2dc, 0, 5, Math.PI * 0.20, 0.5, 1);
+vitrineBrakes.position.set(0.83, 2.4, -1.155);
+const vTargetBrakes = new THREE.Object3D();
+vTargetBrakes.position.set(0.83, 0.36, -1.155);
+scene.add(vTargetBrakes);
+vitrineBrakes.target = vTargetBrakes;
+scene.add(vitrineBrakes);
+
+const vitrineSuspension = new THREE.SpotLight(0xfff2dc, 0, 5, Math.PI * 0.20, 0.5, 1);
+vitrineSuspension.position.set(0.83, 2.6, -1.155);
+const vTargetSuspension = new THREE.Object3D();
+vTargetSuspension.position.set(0.83, 0.60, -1.155);
+scene.add(vTargetSuspension);
+vitrineSuspension.target = vTargetSuspension;
+scene.add(vitrineSuspension);
+
+/* ───────── Shared accent material (gold) — broadcast on tweak ───────── */
+const accentMaterials = [];
+const bodyMaterials = [];
+
+function makeAccent(extra = {}) {
+  const m = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(window.appState.accent),
+    metalness: 1.0,
+    roughness: 0.15,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.06,
+    transparent: true,
+    opacity: 1,
+    depthWrite: true,
+    ...extra,
+  });
+  accentMaterials.push(m);
+  return m;
+}
+
+function makeMetal(color = 0xb4b4b8, opts = {}) {
+  return new THREE.MeshPhysicalMaterial({
+    color,
+    metalness: 0.95,
+    roughness: 0.3,
+    transparent: true,
+    opacity: 1,
+    depthWrite: true,
+    ...opts,
+  });
+}
+
+function makeMatte(color, opts = {}) {
+  return new THREE.MeshStandardMaterial({
+    color,
+    metalness: 0.2,
+    roughness: 0.8,
+    transparent: true,
+    opacity: 1,
+    depthWrite: true,
+    ...opts,
+  });
+}
+
+function makeChrome() {
+  return new THREE.MeshPhysicalMaterial({
+    color: 0xe0e0e4,
+    metalness: 1.0,
+    roughness: 0.04,
+    anisotropy: 0.7,
+    transparent: true,
+    opacity: 1,
+    depthWrite: true,
+  });
+}
+
+/* ═════════════════════════════════════════════════════════════════ */
+/* PROCEDURAL: V8 Engine                                              */
+/* ═════════════════════════════════════════════════════════════════ */
+function buildEngine() {
+  const g = new THREE.Group();
+  const localMaterials = [];
+
+  const blockMat = makeMetal(0x2a2a2d, { roughness: 0.5 });
+  const castMat = makeMatte(0x1a1a1c, { roughness: 0.85 });
+  const aluMat = makeMetal(0xa8a8ac, { roughness: 0.35 });
+  const carbonMat = makeMatte(0x0a0a0c, { roughness: 0.9 });
+  const chromeMat = makeChrome();
+  const accentMat = makeAccent();
+  const billetMat = makeAccent({ roughness: 0.25 });
+  const rubberMat = makeMatte(0x8a1818, { roughness: 0.95 });
+  const yellowMat = makeMatte(0xd9b540, { metalness: 0.3, roughness: 0.5 });
+  const orangeMat = new THREE.MeshStandardMaterial({ color: 0xff7a18, transparent: true, opacity: 1, emissive: 0x331600, emissiveIntensity: 0.3 });
+  const harnessMat = makeMatte(0x141416);
+  const glassMat = new THREE.MeshPhysicalMaterial({
+    color: 0xffffff, transmission: 0.4, opacity: 0.85, transparent: true,
+    ior: 1.4, roughness: 0.2, metalness: 0, depthWrite: false,
+  });
+
+  localMaterials.push(blockMat, castMat, aluMat, carbonMat, chromeMat, accentMat, billetMat, rubberMat, yellowMat, orangeMat, harnessMat, glassMat);
+
+  // Block
+  const block = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.17, 0.52), blockMat);
+  block.position.y = 0.085;
+  g.add(block);
+
+  // Sump pan
+  const sump = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.07, 0.48), castMat);
+  sump.position.y = -0.035;
+  g.add(sump);
+
+  // Cast ridges (4 per side)
+  for (let s = 0; s < 2; s++) {
+    const side = s === 0 ? -1 : 1;
+    for (let i = 0; i < 4; i++) {
+      const r = new THREE.Mesh(
+        new THREE.BoxGeometry(0.02, 0.13, 0.04),
+        castMat
+      );
+      r.position.set(side * 0.255, 0.085, -0.18 + i * 0.12);
+      g.add(r);
+    }
+  }
+
+  // Cylinder banks (90° V)
+  for (let s = 0; s < 2; s++) {
+    const side = s === 0 ? -1 : 1;
+    const bank = new THREE.Group();
+    bank.position.set(side * 0.10, 0.21, 0);
+    bank.rotation.z = side * 0.55;
+
+    // Bank walls
+    const w1 = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.08, 0.50), blockMat);
+    w1.position.y = 0.05;
+    bank.add(w1);
+    const w2 = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.05, 0.48), blockMat);
+    w2.position.y = 0.115;
+    bank.add(w2);
+
+    // Valve cover (GOLD ACCENT)
+    const cover = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.07, 0.50), accentMat);
+    cover.position.y = 0.18;
+    cover.castShadow = true;
+    bank.add(cover);
+
+    // 4 raised ribs on cover
+    for (let i = 0; i < 4; i++) {
+      const rib = new THREE.Mesh(
+        new THREE.BoxGeometry(0.20, 0.012, 0.04),
+        accentMat
+      );
+      rib.position.set(0, 0.222, -0.18 + i * 0.12);
+      bank.add(rib);
+    }
+
+    // 10 hex bolts around cover perimeter
+    const boltGeo = new THREE.CylinderGeometry(0.008, 0.008, 0.014, 6);
+    for (let i = 0; i < 5; i++) {
+      const z = -0.22 + i * 0.11;
+      for (let b = 0; b < 2; b++) {
+        const bolt = new THREE.Mesh(boltGeo, chromeMat);
+        bolt.position.set(b === 0 ? -0.10 : 0.10, 0.218, z);
+        bank.add(bolt);
+      }
+    }
+
+    // 4 spark-plug coil packs
+    for (let i = 0; i < 4; i++) {
+      const coil = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.055, 16), carbonMat);
+      body.position.y = 0.028;
+      coil.add(body);
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.020, 0.020, 0.010, 16), chromeMat);
+      cap.position.y = 0.060;
+      coil.add(cap);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.018, 0.003, 8, 24), aluMat);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = 0.005;
+      coil.add(ring);
+      coil.position.set(0, 0.255, -0.18 + i * 0.12);
+      bank.add(coil);
+    }
+
+    // 4 exhaust manifold runners (curved tubes)
+    for (let i = 0; i < 4; i++) {
+      const z = -0.18 + i * 0.12;
+      const startY = 0.14;
+      const sx = side * 0.11;
+      const curve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(sx, startY, z),
+        new THREE.Vector3(sx + side * 0.04, startY - 0.04, z),
+        new THREE.Vector3(sx + side * 0.08, startY - 0.10, z + 0.02),
+        new THREE.Vector3(sx + side * 0.12, startY - 0.14, z + 0.05),
+      ]);
+      const tube = new THREE.Mesh(
+        new THREE.TubeGeometry(curve, 14, 0.015, 8, false),
+        chromeMat
+      );
+      bank.add(tube);
+    }
+
+    g.add(bank);
+  }
+
+  // Intake plenum (long cylinder bridging V)
+  const plenum = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.5, 24), aluMat);
+  plenum.rotation.z = Math.PI / 2;
+  plenum.position.set(0, 0.35, 0);
+  g.add(plenum);
+  const plenumCap1 = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 16), aluMat);
+  plenumCap1.position.set(0.25, 0.35, 0);
+  g.add(plenumCap1);
+  const plenumCap2 = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 16), aluMat);
+  plenumCap2.position.set(-0.25, 0.35, 0);
+  g.add(plenumCap2);
+  const throttle = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.06, 16), chromeMat);
+  throttle.rotation.x = Math.PI / 2;
+  throttle.position.set(0, 0.35, 0.08);
+  g.add(throttle);
+
+  // 8 short intake runners (4 each side)
+  for (let s = 0; s < 2; s++) {
+    const side = s === 0 ? -1 : 1;
+    for (let i = 0; i < 4; i++) {
+      const z = -0.18 + i * 0.12;
+      const curve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0, 0.33, 0),
+        new THREE.Vector3(side * 0.04, 0.30, z * 0.3),
+        new THREE.Vector3(side * 0.08, 0.26, z * 0.7),
+        new THREE.Vector3(side * 0.10, 0.22, z),
+      ]);
+      const tube = new THREE.Mesh(
+        new THREE.TubeGeometry(curve, 12, 0.018, 8, false),
+        aluMat
+      );
+      g.add(tube);
+    }
+  }
+
+  // 4 velocity stacks (bell-flared trumpets)
+  for (let i = 0; i < 4; i++) {
+    const pts = [];
+    for (let j = 0; j <= 10; j++) {
+      const y = j / 10;
+      const r = 0.025 + Math.pow(1 - y, 1.5) * 0.020;
+      pts.push(new THREE.Vector2(r, y * 0.07));
+    }
+    const stack = new THREE.Mesh(new THREE.LatheGeometry(pts, 24), chromeMat);
+    stack.position.set(-0.12 + i * 0.08, 0.405, 0);
+    g.add(stack);
+  }
+
+  // Fuel rail
+  const fuelRail = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.50, 16), chromeMat);
+  fuelRail.rotation.z = Math.PI / 2;
+  fuelRail.position.set(0, 0.32, -0.06);
+  g.add(fuelRail);
+  // 8 injector stubs + 2 end caps
+  for (let i = 0; i < 8; i++) {
+    const inj = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.02, 12), aluMat);
+    inj.position.set(-0.21 + i * 0.06, 0.305, -0.06);
+    g.add(inj);
+    const conn = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.018, 0.014), harnessMat);
+    conn.position.set(-0.21 + i * 0.06, 0.286, -0.06);
+    g.add(conn);
+  }
+  for (let s = 0; s < 2; s++) {
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.012, 12, 12), chromeMat);
+    cap.position.set((s === 0 ? -1 : 1) * 0.25, 0.32, -0.06);
+    g.add(cap);
+  }
+
+  // AXIOM/General Parts billet plate (gold accent)
+  const billet = new THREE.Mesh(
+    new THREE.BoxGeometry(0.30, 0.018, 0.085),
+    billetMat
+  );
+  billet.position.set(0, 0.42, 0.16);
+  g.add(billet);
+  const engrave = new THREE.Mesh(
+    new THREE.BoxGeometry(0.26, 0.004, 0.03),
+    makeMatte(0x4a3a18, { metalness: 0.5, roughness: 0.6 })
+  );
+  engrave.position.set(0, 0.4295, 0.16);
+  g.add(engrave);
+  for (let i = 0; i < 4; i++) {
+    const x = i % 2 === 0 ? -0.14 : 0.14;
+    const z = i < 2 ? 0.135 : 0.185;
+    const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.018, 6), chromeMat);
+    bolt.position.set(x, 0.42, z);
+    g.add(bolt);
+  }
+
+  // Pulleys (4 stacked discs)
+  for (let i = 0; i < 4; i++) {
+    const mat = i % 2 === 0 ? chromeMat : aluMat;
+    const r = 0.04 - i * 0.003;
+    const p = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.02, 24), mat);
+    p.rotation.x = Math.PI / 2;
+    p.position.set(0.27, 0.18, 0.28);
+    p.position.z -= i * 0.022;
+    g.add(p);
+  }
+  const crankBolt = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.04, 6), chromeMat);
+  crankBolt.rotation.x = Math.PI / 2;
+  crankBolt.position.set(0.27, 0.18, 0.30);
+  g.add(crankBolt);
+
+  // Belt loop (closed tube around ellipse)
+  const beltCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0.27, 0.25, 0.28),
+    new THREE.Vector3(0.31, 0.21, 0.28),
+    new THREE.Vector3(0.31, 0.15, 0.28),
+    new THREE.Vector3(0.27, 0.11, 0.28),
+    new THREE.Vector3(0.23, 0.15, 0.28),
+    new THREE.Vector3(0.23, 0.21, 0.28),
+  ], true);
+  const belt = new THREE.Mesh(
+    new THREE.TubeGeometry(beltCurve, 80, 0.005, 8, true),
+    makeMatte(0x111111)
+  );
+  g.add(belt);
+
+  // 2 coolant hoses (red rubber)
+  for (let s = 0; s < 2; s++) {
+    const side = s === 0 ? -1 : 1;
+    const curve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(side * 0.25, 0.21, 0.18),
+      new THREE.Vector3(side * 0.28, 0.18, 0.20),
+      new THREE.Vector3(side * 0.32, 0.13, 0.22),
+      new THREE.Vector3(side * 0.32, 0.07, 0.26),
+    ]);
+    const hose = new THREE.Mesh(
+      new THREE.TubeGeometry(curve, 24, 0.020, 12, false),
+      rubberMat
+    );
+    g.add(hose);
+    // Clamp rings
+    for (let i = 0; i < 2; i++) {
+      const pos = curve.getPointAt(i === 0 ? 0.05 : 0.95);
+      const tangent = curve.getTangentAt(i === 0 ? 0.05 : 0.95);
+      const clamp = new THREE.Mesh(
+        new THREE.TorusGeometry(0.022, 0.003, 8, 24),
+        chromeMat
+      );
+      clamp.position.copy(pos);
+      clamp.lookAt(pos.x + tangent.x, pos.y + tangent.y, pos.z + tangent.z);
+      g.add(clamp);
+    }
+  }
+
+  // Wiring harness with zip-ties
+  const harnessCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-0.25, 0.40, -0.10),
+    new THREE.Vector3(-0.10, 0.42, -0.10),
+    new THREE.Vector3(0.10, 0.42, -0.10),
+    new THREE.Vector3(0.25, 0.40, -0.10),
+  ]);
+  const harness = new THREE.Mesh(
+    new THREE.TubeGeometry(harnessCurve, 30, 0.012, 8, false),
+    harnessMat
+  );
+  g.add(harness);
+  for (let i = 0; i < 4; i++) {
+    const pos = harnessCurve.getPointAt(0.15 + i * 0.22);
+    const zip = new THREE.Mesh(
+      new THREE.TorusGeometry(0.014, 0.002, 8, 16),
+      makeMatte(0x202024)
+    );
+    zip.position.copy(pos);
+    zip.rotation.y = Math.PI / 2;
+    g.add(zip);
+  }
+
+  // Oil filter canister
+  const oilFilter = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.10, 24), makeMetal(0x141414));
+  oilFilter.position.set(-0.25, 0.04, 0.18);
+  g.add(oilFilter);
+  // Oil cap (knurled)
+  const oilCap = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.022, 0.018, 32), aluMat);
+  oilCap.position.set(0.15, 0.43, -0.06);
+  g.add(oilCap);
+  // Yellow dipstick
+  const dipBase = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.10, 12), aluMat);
+  dipBase.position.set(-0.18, 0.30, 0.20);
+  g.add(dipBase);
+  const dipHandle = new THREE.Mesh(new THREE.TorusGeometry(0.015, 0.005, 8, 16), yellowMat);
+  dipHandle.position.set(-0.18, 0.36, 0.20);
+  dipHandle.rotation.x = Math.PI / 2;
+  g.add(dipHandle);
+
+  // Coolant overflow tank
+  const tank = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.04, 0.04, 0.10, 20),
+    glassMat
+  );
+  tank.position.set(0.20, 0.10, 0.20);
+  g.add(tank);
+  const tankCap = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.030, 0.018, 16), accentMat);
+  tankCap.position.set(0.20, 0.165, 0.20);
+  g.add(tankCap);
+  const fluid = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.038, 0.038, 0.005, 20),
+    orangeMat
+  );
+  fluid.position.set(0.20, 0.04, 0.20);
+  g.add(fluid);
+
+  // 2 engine mount feet
+  for (let s = 0; s < 2; s++) {
+    const side = s === 0 ? -1 : 1;
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.05, 0.08), blockMat);
+    foot.position.set(side * 0.26, -0.04, -0.20);
+    g.add(foot);
+  }
+
+  return { group: g, materials: localMaterials };
+}
+
+/* ═════════════════════════════════════════════════════════════════ */
+/* PROCEDURAL: Brakes (Ø410 carbon-ceramic)                          */
+/* ═════════════════════════════════════════════════════════════════ */
+function buildBrakes() {
+  const g = new THREE.Group();
+  const localMaterials = [];
+
+  const DISC_R = 0.205;
+  const DISC_INNER = 0.105;
+  const FACE_THICK = 0.012;
+  const VENT_GAP = 0.022;
+  const CAL_R = 0.217;
+  const CAL_THICK = 0.034;
+
+  const carbonMat = makeMatte(0x141416, { metalness: 0.1, roughness: 0.7 });
+  const polishedMat = makeMetal(0xc0c0c4, { roughness: 0.15 });
+  const calMat = makeAccent({ roughness: 0.20 });
+  const lugMat = makeMetal(0xa8a8ac);
+  const padMat = makeMatte(0x322820);
+  const pistonMat = makeMetal(0xe0e0e4, { roughness: 0.08 });
+  const hubMat = makeMetal(0x141416);
+  const hoseMat = makeMatte(0x282830, { metalness: 0.8, roughness: 0.4 });
+  const wireMat = makeMatte(0x383838);
+  localMaterials.push(carbonMat, polishedMat, calMat, lugMat, padMat, pistonMat, hubMat, hoseMat, wireMat);
+
+  // Disc faces (2x with drilled holes via THREE.Shape + ExtrudeGeometry)
+  function makeDiscFace() {
+    const shape = new THREE.Shape();
+    shape.absarc(0, 0, DISC_R, 0, Math.PI * 2, false);
+
+    // Inner hub bore
+    const inner = new THREE.Path();
+    inner.absarc(0, 0, DISC_INNER, 0, Math.PI * 2, true);
+    shape.holes.push(inner);
+
+    // 24 holes on ring r=0.146
+    for (let i = 0; i < 24; i++) {
+      const a = (i / 24) * Math.PI * 2;
+      const path = new THREE.Path();
+      path.absarc(Math.cos(a) * 0.146, Math.sin(a) * 0.146, 0.012, 0, Math.PI * 2, true);
+      shape.holes.push(path);
+    }
+    // 28 holes on ring r=0.174
+    for (let i = 0; i < 28; i++) {
+      const a = (i / 28) * Math.PI * 2 + Math.PI / 28;
+      const path = new THREE.Path();
+      path.absarc(Math.cos(a) * 0.174, Math.sin(a) * 0.174, 0.0085, 0, Math.PI * 2, true);
+      shape.holes.push(path);
+    }
+
+    return new THREE.ExtrudeGeometry(shape, {
+      depth: FACE_THICK,
+      bevelEnabled: true,
+      bevelSegments: 2,
+      bevelSize: 0.002,
+      bevelThickness: 0.002,
+      curveSegments: 48,
+    });
+  }
+
+  const faceGeo = makeDiscFace();
+  const face1 = new THREE.Mesh(faceGeo, carbonMat);
+  face1.rotation.x = Math.PI / 2;
+  face1.position.z = -VENT_GAP / 2;
+  face1.castShadow = true;
+  g.add(face1);
+  const face2 = new THREE.Mesh(faceGeo, carbonMat);
+  face2.rotation.x = Math.PI / 2;
+  face2.position.z = VENT_GAP / 2 + FACE_THICK;
+  face2.castShadow = true;
+  g.add(face2);
+
+  // Polished contact-patch rings (where pads bite)
+  for (let s = 0; s < 2; s++) {
+    const z = s === 0 ? -VENT_GAP / 2 - 0.001 : VENT_GAP / 2 + FACE_THICK + 0.001;
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.140, 0.198, 64),
+      polishedMat
+    );
+    ring.position.z = z;
+    g.add(ring);
+  }
+
+  // 36 radial cooling fins between faces
+  for (let i = 0; i < 36; i++) {
+    const a = (i / 36) * Math.PI * 2;
+    const fin = new THREE.Mesh(
+      new THREE.BoxGeometry(0.06, 0.012, VENT_GAP - 0.002),
+      hubMat
+    );
+    fin.position.set(Math.cos(a) * 0.155, Math.sin(a) * 0.155, FACE_THICK / 2);
+    fin.rotation.z = a;
+    g.add(fin);
+  }
+
+  // Hat (cone connecting disc to hub)
+  const hatGeo = new THREE.CylinderGeometry(DISC_INNER, 0.080, 0.04, 32);
+  const hat = new THREE.Mesh(hatGeo, hubMat);
+  hat.rotation.x = Math.PI / 2;
+  hat.position.z = FACE_THICK + 0.020;
+  g.add(hat);
+
+  // Hub + 5 lug nuts
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.060, 0.060, 0.03, 24), hubMat);
+  hub.rotation.x = Math.PI / 2;
+  hub.position.z = FACE_THICK + 0.046;
+  g.add(hub);
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    const lug = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.020, 6), lugMat);
+    lug.rotation.x = Math.PI / 2;
+    lug.position.set(Math.cos(a) * 0.038, Math.sin(a) * 0.038, FACE_THICK + 0.055);
+    g.add(lug);
+  }
+  // Center hub cap (gold accent)
+  const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.020, 0.020, 0.014, 24), calMat);
+  cap.rotation.x = Math.PI / 2;
+  cap.position.z = FACE_THICK + 0.062;
+  g.add(cap);
+
+  // Caliper: 0.42π torus arc (around top of disc)
+  const arc = 0.42 * Math.PI;
+  const calStart = Math.PI / 2 - arc / 2;
+  const torusBody = new THREE.Mesh(
+    new THREE.TorusGeometry(CAL_R, CAL_THICK / 2, 16, 48, arc),
+    calMat
+  );
+  torusBody.rotation.z = calStart;
+  // Replicate for both sides of disc
+  const cal1 = torusBody.clone();
+  cal1.position.z = -VENT_GAP / 2 + FACE_THICK / 2;
+  g.add(cal1);
+  const cal2 = torusBody.clone();
+  cal2.position.z = VENT_GAP / 2 + FACE_THICK / 2;
+  g.add(cal2);
+
+  // 3 ribs along outer surface (each side)
+  for (let s = 0; s < 2; s++) {
+    const z = s === 0 ? -VENT_GAP / 2 + FACE_THICK / 2 : VENT_GAP / 2 + FACE_THICK / 2;
+    for (let i = 0; i < 3; i++) {
+      const a = calStart + arc * (0.25 + i * 0.25);
+      const rib = new THREE.Mesh(
+        new THREE.BoxGeometry(0.006, 0.040, CAL_THICK + 0.004),
+        calMat
+      );
+      rib.position.set(Math.cos(a) * (CAL_R + CAL_THICK / 2 + 0.002), Math.sin(a) * (CAL_R + CAL_THICK / 2 + 0.002), z);
+      rib.rotation.z = a;
+      g.add(rib);
+    }
+  }
+
+  // 3 pistons per side
+  for (let s = 0; s < 2; s++) {
+    const z = s === 0 ? -VENT_GAP / 2 - 0.010 : VENT_GAP / 2 + FACE_THICK + 0.010;
+    const dir = s === 0 ? 1 : -1;
+    for (let i = 0; i < 3; i++) {
+      const a = calStart + arc * (0.2 + i * 0.3);
+      const piston = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.020, 0.020, 0.022, 16),
+        pistonMat
+      );
+      piston.position.set(Math.cos(a) * (CAL_R - 0.010), Math.sin(a) * (CAL_R - 0.010), z);
+      piston.rotation.x = Math.PI / 2;
+      g.add(piston);
+    }
+  }
+
+  // 4 bridges over top
+  for (let i = 0; i < 4; i++) {
+    const a = calStart + arc * (0.15 + i * 0.23);
+    const bridge = new THREE.Mesh(
+      new THREE.BoxGeometry(0.014, 0.012, VENT_GAP + FACE_THICK * 2 + 0.006),
+      calMat
+    );
+    bridge.position.set(Math.cos(a) * (CAL_R + CAL_THICK / 2), Math.sin(a) * (CAL_R + CAL_THICK / 2), FACE_THICK / 2);
+    bridge.rotation.z = a;
+    g.add(bridge);
+  }
+
+  // 6 brake pads (3 per side)
+  for (let s = 0; s < 2; s++) {
+    const z = s === 0 ? -VENT_GAP / 2 - 0.006 : VENT_GAP / 2 + FACE_THICK + 0.006;
+    for (let i = 0; i < 3; i++) {
+      const a = calStart + arc * (0.2 + i * 0.3);
+      const pad = new THREE.Mesh(
+        new THREE.BoxGeometry(0.026, 0.055, 0.006),
+        padMat
+      );
+      pad.position.set(Math.cos(a) * (CAL_R - 0.030), Math.sin(a) * (CAL_R - 0.030), z);
+      pad.rotation.z = a + Math.PI / 2;
+      g.add(pad);
+    }
+  }
+
+  // Etched plate (engraved)
+  for (let s = 0; s < 2; s++) {
+    const z = s === 0 ? -VENT_GAP / 2 - 0.012 : VENT_GAP / 2 + FACE_THICK + 0.012;
+    const plate = new THREE.Mesh(
+      new THREE.BoxGeometry(0.10, 0.020, 0.004),
+      makeMetal(0x7a5a20, { roughness: 0.5 })
+    );
+    plate.position.set(0, CAL_R, z);
+    g.add(plate);
+  }
+
+  // Braided brake hose + 12 stainless rings
+  const hoseCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(-0.04, CAL_R + 0.04, FACE_THICK / 2),
+    new THREE.Vector3(-0.10, CAL_R + 0.10, FACE_THICK / 2),
+    new THREE.Vector3(-0.18, CAL_R + 0.08, FACE_THICK / 2),
+    new THREE.Vector3(-0.24, CAL_R - 0.02, FACE_THICK / 2),
+  ]);
+  const hose = new THREE.Mesh(
+    new THREE.TubeGeometry(hoseCurve, 30, 0.008, 8, false),
+    hoseMat
+  );
+  g.add(hose);
+  for (let i = 0; i < 12; i++) {
+    const t = (i + 0.5) / 12;
+    const pos = hoseCurve.getPointAt(t);
+    const tan = hoseCurve.getTangentAt(t);
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.0095, 0.001, 6, 16),
+      polishedMat
+    );
+    ring.position.copy(pos);
+    const matrix = new THREE.Matrix4().lookAt(new THREE.Vector3(0,0,0), tan, new THREE.Vector3(0,1,0));
+    ring.quaternion.setFromRotationMatrix(matrix);
+    g.add(ring);
+  }
+  // Banjo fitting at hose entry
+  const banjo = new THREE.Mesh(new THREE.BoxGeometry(0.020, 0.020, 0.022), polishedMat);
+  banjo.position.set(-0.04, CAL_R + 0.04, FACE_THICK / 2);
+  g.add(banjo);
+
+  // ABS sensor wire
+  const absCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0.05, 0.04, FACE_THICK + 0.06),
+    new THREE.Vector3(0.10, 0.02, FACE_THICK + 0.10),
+    new THREE.Vector3(0.16, -0.04, FACE_THICK + 0.12),
+  ]);
+  const absWire = new THREE.Mesh(
+    new THREE.TubeGeometry(absCurve, 16, 0.003, 6, false),
+    wireMat
+  );
+  g.add(absWire);
+
+  return { group: g, materials: localMaterials };
+}
+
+/* ═════════════════════════════════════════════════════════════════ */
+/* PROCEDURAL: Coil-over suspension                                  */
+/* ═════════════════════════════════════════════════════════════════ */
+function buildSuspension() {
+  const g = new THREE.Group();
+  const localMaterials = [];
+
+  const anodised = makeMetal(0x14181c, { roughness: 0.35 });
+  const chromeMat = makeChrome();
+  const accentMat = makeAccent({ roughness: 0.18 });
+  const yellowMat = makeMatte(0xd9b540, { metalness: 0.3, roughness: 0.5 });
+  const springMat = makeAccent({ roughness: 0.22 });
+  const bushMat = makeMatte(0x14141a, { roughness: 0.9 });
+  const reservoirMat = makeMetal(0x282830, { roughness: 0.4 });
+  localMaterials.push(anodised, chromeMat, accentMat, yellowMat, springMat, bushMat, reservoirMat);
+
+  // Shock body (lower)
+  const bodyLow = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.22, 28), anodised);
+  bodyLow.position.y = -0.16;
+  g.add(bodyLow);
+  // 18 thin rings (visual threading)
+  for (let i = 0; i < 18; i++) {
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.046, 0.0015, 6, 28),
+      anodised
+    );
+    ring.position.y = -0.27 + i * 0.012;
+    ring.rotation.x = Math.PI / 2;
+    g.add(ring);
+  }
+
+  // Spring perch collar (knurled)
+  const perchLow = new THREE.Mesh(new THREE.CylinderGeometry(0.054, 0.054, 0.026, 32), accentMat);
+  perchLow.position.y = -0.04;
+  g.add(perchLow);
+  // Knurl rings on perch
+  for (let i = 0; i < 3; i++) {
+    const k = new THREE.Mesh(
+      new THREE.TorusGeometry(0.055, 0.0012, 6, 32),
+      accentMat
+    );
+    k.position.y = -0.052 + i * 0.012;
+    k.rotation.x = Math.PI / 2;
+    g.add(k);
+  }
+
+  // Chrome shaft
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.20, 20), chromeMat);
+  shaft.position.y = 0.10;
+  g.add(shaft);
+
+  // Yellow bump-stop
+  const bump = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.040, 20), yellowMat);
+  bump.position.y = 0.04;
+  g.add(bump);
+
+  // Upper spring perch
+  const perchUp = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.052, 0.020, 32), accentMat);
+  perchUp.position.y = 0.165;
+  g.add(perchUp);
+
+  // Helical spring (TubeGeometry along 3D helix curve)
+  const springPoints = [];
+  const coils = 8;
+  const segPerCoil = 28;
+  for (let i = 0; i <= coils * segPerCoil; i++) {
+    const t = i / (coils * segPerCoil);
+    const a = t * Math.PI * 2 * coils;
+    const y = -0.025 + t * 0.18;
+    springPoints.push(new THREE.Vector3(Math.cos(a) * 0.048, y, Math.sin(a) * 0.048));
+  }
+  const springCurve = new THREE.CatmullRomCurve3(springPoints);
+  const spring = new THREE.Mesh(
+    new THREE.TubeGeometry(springCurve, coils * segPerCoil, 0.0070, 10, false),
+    springMat
+  );
+  g.add(spring);
+
+  // Top mount
+  const topMount = new THREE.Mesh(new THREE.CylinderGeometry(0.060, 0.054, 0.030, 24), anodised);
+  topMount.position.y = 0.215;
+  g.add(topMount);
+  // Center stud
+  const stud = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.020, 16), chromeMat);
+  stud.position.y = 0.240;
+  g.add(stud);
+  // 3 hex bolts
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2;
+    const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.018, 6), chromeMat);
+    bolt.position.set(Math.cos(a) * 0.040, 0.230, Math.sin(a) * 0.040);
+    g.add(bolt);
+  }
+
+  // Damping adjuster knob (gold)
+  const knob = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.020, 24), accentMat);
+  knob.position.set(0, -0.27, 0.06);
+  knob.rotation.x = Math.PI / 2;
+  g.add(knob);
+  // Knurl on knob
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * Math.PI * 2;
+    const nub = new THREE.Mesh(
+      new THREE.BoxGeometry(0.003, 0.020, 0.003),
+      accentMat
+    );
+    nub.position.set(Math.cos(a) * 0.0225, -0.27, 0.06 + Math.sin(a) * 0.0225);
+    g.add(nub);
+  }
+  const knobRing = new THREE.Mesh(
+    new THREE.TorusGeometry(0.024, 0.0015, 6, 24),
+    accentMat
+  );
+  knobRing.position.set(0, -0.27, 0.072);
+  g.add(knobRing);
+
+  // Bottom eyelet with bushing
+  const eyelet = new THREE.Mesh(new THREE.TorusGeometry(0.030, 0.012, 12, 24), anodised);
+  eyelet.position.y = -0.295;
+  eyelet.rotation.x = Math.PI / 2;
+  g.add(eyelet);
+  const bushing = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.030, 20), bushMat);
+  bushing.position.y = -0.295;
+  bushing.rotation.x = Math.PI / 2;
+  g.add(bushing);
+
+  // Control-arm stub
+  const armStub = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.020, 0.030), makeMetal(0x383840));
+  armStub.position.set(-0.10, -0.295, 0);
+  g.add(armStub);
+  // Spherical ball joint
+  const ballJoint = new THREE.Mesh(new THREE.SphereGeometry(0.024, 16, 16), chromeMat);
+  ballJoint.position.set(-0.20, -0.295, 0);
+  g.add(ballJoint);
+
+  // Piggyback reservoir (angled cylinder)
+  const reservoir = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.10, 20), reservoirMat);
+  reservoir.position.set(0.07, -0.18, 0);
+  reservoir.rotation.z = 0.4;
+  g.add(reservoir);
+  const resRing = new THREE.Mesh(new THREE.TorusGeometry(0.027, 0.002, 8, 24), accentMat);
+  resRing.position.set(0.07, -0.13, 0);
+  resRing.rotation.z = 0.4;
+  resRing.rotation.x = Math.PI / 2;
+  g.add(resRing);
+  const resCap = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.026, 0.014, 20), accentMat);
+  resCap.position.set(0.085, -0.13, 0);
+  resCap.rotation.z = 0.4;
+  g.add(resCap);
+  // Hose to lower body
+  const resHoseCurve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0.055, -0.23, 0),
+    new THREE.Vector3(0.080, -0.25, 0),
+    new THREE.Vector3(0.060, -0.27, 0),
+    new THREE.Vector3(0.030, -0.265, 0),
+  ]);
+  const resHose = new THREE.Mesh(
+    new THREE.TubeGeometry(resHoseCurve, 20, 0.008, 8, false),
+    makeMetal(0x202024, { roughness: 0.5 })
+  );
+  g.add(resHose);
+
+  return { group: g, materials: localMaterials };
+}
+
+/* ───────── Build & position parts ───────── */
+const engineKit = buildEngine();
+const brakesKit = buildBrakes();
+const suspKit = buildSuspension();
+
+engineKit.group.position.set(0, 1.05, -1.55);
+scene.add(engineKit.group);
+
+brakesKit.group.position.set(0.83, 0.36, -1.155);
+brakesKit.group.rotation.y = -Math.PI / 2; // disc faces side
+scene.add(brakesKit.group);
+
+suspKit.group.position.set(0.83, 0.60, -1.155);
+scene.add(suspKit.group);
+
+const allPartMaterials = [
+  ...engineKit.materials,
+  ...brakesKit.materials,
+  ...suspKit.materials,
+];
+allPartMaterials.forEach(m => { m.opacity = 0; });
+
+/* ───────── Ferrari GLB ───────── */
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
+dracoLoader.setDecoderConfig({ type: 'js' });
+
+const gltfLoader = new GLTFLoader();
+gltfLoader.setDRACOLoader(dracoLoader);
+
+const carBodyMat = new THREE.MeshPhysicalMaterial({
+  color: new THREE.Color(window.appState.body),
+  metalness: 1.0,
+  roughness: 0.35,
+  clearcoat: 1.0,
+  clearcoatRoughness: 0.04,
+  envMapIntensity: 1.05,
+});
+bodyMaterials.push(carBodyMat);
+
+const carGlassMat = new THREE.MeshPhysicalMaterial({
+  color: 0x0a0e16,
+  metalness: 0,
+  roughness: 0.04,
+  transmission: 0.18,
+  ior: 1.5,
+  transparent: true,
+  opacity: 0.58,
+});
+
+const carDetailMat = new THREE.MeshPhysicalMaterial({
+  color: 0x141414,
+  metalness: 1.0,
+  roughness: 0.5,
+});
+
+let carGroup = null;
+
+gltfLoader.load(
+  'https://threejs.org/examples/models/gltf/ferrari.glb',
+  (gltf) => {
+    carGroup = gltf.scene;
+    carGroup.traverse((child) => {
+      if (!child.isMesh) return;
+      const name = (child.name || '').toLowerCase();
+      const matName = (child.material?.name || '').toLowerCase();
+      // Strip branding
+      if (/logo|emblem|badge|decal|cavallino|ferrari/i.test(name) ||
+          /logo|emblem|badge|decal|cavallino|ferrari/i.test(matName)) {
+        child.visible = false;
+        return;
+      }
+      // Body parts
+      if (/body|chassis|paint|shell/i.test(name) || /body|paint/i.test(matName)) {
+        child.material = carBodyMat;
+      } else if (/glass|window|windscreen|windshield/i.test(name) || /glass/i.test(matName)) {
+        child.material = carGlassMat;
+      } else {
+        child.material = carDetailMat;
+      }
+      child.castShadow = true;
+      child.receiveShadow = true;
+    });
+    scene.add(carGroup);
+    window.appState.ready = true;
+    window.appState.loaded = 100;
+    window.dispatchEvent(new CustomEvent('app:loaded'));
+  },
+  (xhr) => {
+    if (xhr.lengthComputable && xhr.total > 0) {
+      window.appState.loaded = Math.min(99, Math.round((xhr.loaded / xhr.total) * 100));
+    } else {
+      window.appState.loaded = Math.min(80, window.appState.loaded + 2);
+    }
+    window.dispatchEvent(new CustomEvent('app:progress'));
+  },
+  (err) => {
+    console.warn('GLB load failed, continuing without car:', err);
+    window.appState.ready = true;
+    window.appState.loaded = 100;
+    window.dispatchEvent(new CustomEvent('app:loaded'));
+  }
+);
+
+/* ───────── HDRI environment (reflections only — not background) ───────── */
+const rgbeLoader = new RGBELoader();
+rgbeLoader.load(
+  'https://threejs.org/examples/textures/equirectangular/venice_sunset_1k.hdr',
+  (texture) => {
+    texture.mapping = THREE.EquirectangularReflectionMapping;
+    scene.environment = texture;
+    scene.environmentIntensity = 1.10;
+  },
+  undefined,
+  (err) => console.warn('HDRI load failed:', err)
+);
+
+/* ───────── AO contact shadow plane ───────── */
+const aoLoader = new THREE.TextureLoader();
+aoLoader.load(
+  'https://threejs.org/examples/models/gltf/ferrari_ao.png',
+  (aoTex) => {
+    const shadowMat = new THREE.MeshBasicMaterial({
+      map: aoTex,
+      transparent: true,
+      depthWrite: false,
+      opacity: 0.7,
+    });
+    const shadowPlane = new THREE.Mesh(new THREE.PlaneGeometry(0.655 * 4, 1.3 * 4), shadowMat);
+    shadowPlane.rotation.x = -Math.PI / 2;
+    shadowPlane.position.y = 0.005;
+    scene.add(shadowPlane);
+  }
+);
+
+/* Floor (subtle reflective) */
+const floorMat = new THREE.MeshPhysicalMaterial({
+  color: 0x040404,
+  metalness: 0.4,
+  roughness: 0.55,
+});
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(50, 50), floorMat);
+floor.rotation.x = -Math.PI / 2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+/* ───────── Post-processing ───────── */
+const composer = new EffectComposer(renderer);
+composer.setSize(window.innerWidth, window.innerHeight);
+composer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
+composer.addPass(new RenderPass(scene, camera));
+
+const bloom = new UnrealBloomPass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight),
+  0.42 * window.appState.bloomTweak * 0.55,
+  0.85,
+  0.86
+);
+composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+/* ───────── Scroll engine ───────── */
+let targetProgress = 0;
+let currentProgress = 0;
+
+function onScroll() {
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  targetProgress = max > 0 ? window.scrollY / max : 0;
+}
+window.addEventListener('scroll', onScroll, { passive: true });
+onScroll();
+
+function getCamAtProgress(p) {
+  for (let i = 0; i < CAM.length - 1; i++) {
+    const a = CAM[i];
+    const b = CAM[i + 1];
+    if (p >= a.p && p <= b.p) {
+      const span = b.p - a.p || 1;
+      const t = easeInOut((p - a.p) / span);
+      return {
+        pos: [lerp(a.pos[0], b.pos[0], t), lerp(a.pos[1], b.pos[1], t), lerp(a.pos[2], b.pos[2], t)],
+        tgt: [lerp(a.tgt[0], b.tgt[0], t), lerp(a.tgt[1], b.tgt[1], t), lerp(a.tgt[2], b.tgt[2], t)],
+        fov: lerp(a.fov, b.fov, t),
+      };
+    }
+  }
+  const last = CAM[CAM.length - 1];
+  return { pos: last.pos, tgt: last.tgt, fov: last.fov };
+}
+
+/* ───────── Mutators ───────── */
+window.appState.setAccent = (hex) => {
+  window.appState.accent = hex;
+  const c = new THREE.Color(hex);
+  accentMaterials.forEach(m => m.color.copy(c));
+  rimLight.color.copy(c);
+  document.documentElement.style.setProperty('--gold', hex);
+};
+window.appState.setBody = (hex) => {
+  window.appState.body = hex;
+  const c = new THREE.Color(hex);
+  carBodyMat.color.copy(c);
+};
+window.appState.setBloom = (v) => {
+  window.appState.bloomTweak = v;
+  bloom.strength = 0.42 * v * 0.55;
+};
+window.appState.setLerp = (v) => { window.appState.lerpStrength = v; };
+window.appState.setScrollLength = (v) => {
+  window.appState.scrollLength = v;
+  document.getElementById('scroll-spacer').style.height = (500 * v) + 'vh';
+  onScroll();
+};
+window.appState.jumpTo = (p) => {
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  window.scrollTo({ top: max * p, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+};
+
+/* ───────── Resize ───────── */
+function onResize() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  renderer.setSize(w, h, false);
+  composer.setSize(w, h);
+}
+window.addEventListener('resize', onResize, { passive: true });
+
+/* ───────── Animation loop ───────── */
+const tmpV = new THREE.Vector3();
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function animate(now) {
+  requestAnimationFrame(animate);
+
+  if (prefersReducedMotion) {
+    // Snap to target (no inertia)
+    currentProgress = targetProgress;
+  } else {
+    currentProgress += (targetProgress - currentProgress) * window.appState.lerpStrength;
+  }
+  window.appState.progress = currentProgress;
+
+  const cam = getCamAtProgress(currentProgress);
+  camera.position.set(cam.pos[0], cam.pos[1], cam.pos[2]);
+  camTarget.set(cam.tgt[0], cam.tgt[1], cam.tgt[2]);
+  camera.lookAt(camTarget);
+  if (Math.abs(camera.fov - cam.fov) > 0.001) {
+    camera.fov = cam.fov;
+    camera.updateProjectionMatrix();
+  }
+
+  // Part opacities
+  const oEngine = partOpacityFor(currentProgress, [0.20, 0.28, 0.44, 0.50]);
+  const oBrakes = partOpacityFor(currentProgress, [0.54, 0.60, 0.66, 0.72]);
+  const oSusp = partOpacityFor(currentProgress, [0.74, 0.80, 0.86, 0.92]);
+
+  engineKit.materials.forEach(m => {
+    m.opacity = oEngine;
+    m.depthWrite = oEngine > 0.95;
+  });
+  brakesKit.materials.forEach(m => {
+    m.opacity = oBrakes;
+    m.depthWrite = oBrakes > 0.95;
+  });
+  suspKit.materials.forEach(m => {
+    m.opacity = oSusp;
+    m.depthWrite = oSusp > 0.95;
+  });
+
+  vitrineEngine.intensity = 8 * oEngine;
+  vitrineBrakes.intensity = 9 * oBrakes;
+  vitrineSuspension.intensity = 8 * oSusp;
+
+  // Engine slow sway
+  if (engineKit.group) {
+    engineKit.group.rotation.y = Math.sin(now * 0.00015) * 0.18;
+  }
+
+  // Chapter for HUD
+  let chapter = 0;
+  if (currentProgress > 0.20 && currentProgress < 0.52) chapter = 1;
+  else if (currentProgress >= 0.52 && currentProgress < 0.72) chapter = 2;
+  else if (currentProgress >= 0.72 && currentProgress < 0.90) chapter = 3;
+  else if (currentProgress >= 0.90) chapter = 4;
+  window.appState.chapter = chapter;
+
+  // Update hotspot projections (for React to read)
+  window.appState._hotspotScreenPositions = computeHotspotPositions();
+
+  composer.render();
+}
+
+function computeHotspotPositions() {
+  const out = { engine: [], brakes: [], suspension: [] };
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  for (const key of Object.keys(window.appState.hotspots)) {
+    for (const hs of window.appState.hotspots[key]) {
+      tmpV.set(hs.pos[0], hs.pos[1], hs.pos[2]);
+      tmpV.project(camera);
+      out[key].push({
+        name: hs.name,
+        x: (tmpV.x * 0.5 + 0.5) * w,
+        y: (-tmpV.y * 0.5 + 0.5) * h,
+        z: tmpV.z,
+      });
+    }
+  }
+  return out;
+}
+
+requestAnimationFrame(animate);
+
+// Signal HUD to render
+window.dispatchEvent(new CustomEvent('app:ready'));
+</script>
+
+
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<!-- React HUD                                                         -->
+<!-- ═════════════════════════════════════════════════════════════════ -->
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo, useCallback, createContext, useContext } = React;
+
+/* ───────── COPY dict ───────── */
+const COPY = {
+  he: {
+    brand: 'GENERAL PARTS',
+    nav: ['אולם תצוגה', 'מנוע', 'בלמים', 'מתלים', 'קטלוג'],
+    introIndex: 'פרק 01 · הקדמה',
+    introTitle: 'חלק. רצון. שלמות.',
+    introBody: 'אולם תצוגה דיגיטלי לחלפים יוקרתיים. הנדסה אנגלית, ביצוע איטלקי, עמידה גרמנית — ב-General Parts כל רכיב נבחר בקפדנות מירבית ועומד בתקני יצרן מקוריים.',
+    engineIndex: 'פרק 02 · מנוע',
+    engineTitle: 'הלב הנושם.',
+    engineBody: 'בלוק V8 בנפח 4.0 ליטר, יציקת אלומיניום קל-משקל, מכסי שסתומים זהובים מאלומיניום אנודייז. הספק שיא של 612 כוחות סוס, מומנט מקסימלי 568 ניוטון·מטר, רדיוס סיבובים עד 8,500 סלל"ד.',
+    brakesIndex: 'פרק 03 · בלמים',
+    brakesTitle: 'קרמיקת פחמן, גימור זהב.',
+    brakesBody: 'דיסקי בלם קרמיים-פחמניים בקוטר 410 מ"מ, סוללי 6-בוכנות מונובלוק חרוטים. עמידות תרמית עד 1,200°C, משקל ירוד ב-50% מול ברזל יציקה — תאוצה והאטה מדויקות יותר.',
+    suspensionIndex: 'פרק 04 · מתלים',
+    suspensionTitle: 'מכוון ב-24 קליקים.',
+    suspensionBody: 'מתלי קויל-אובר עם בקרת ריסון מתכווננת ידנית וקפיץ הליקלי מתקדם. גובה רכיבה מתכוונן ±25 מ"מ, ריסון ב-24 שלבים מדויקים — מותאם מסלול לכביש לפי הצורך.',
+    outroIndex: 'פרק 05 · התאמה אישית',
+    outro: ['הגדר', 'את', 'היחידה.'],
+    outroBody: 'כל חלק מותאם אישית להגדרות הרכב שלך. שעב עם מומחי General Parts לבחירת הקונפיגורציה המדויקת.',
+    ctaPrimary: 'בקש תצוגה אישית',
+    ctaSecondary: 'דבר עם מומחה',
+    returnTop: 'חזרה למעלה',
+    streaming: 'טוען נכסים',
+    scroll: 'גלול',
+    chapters: ['הקדמה', 'מנוע', 'בלמים', 'מתלים', 'סיכום'],
+    hsValveCover: 'מכסה שסתומים · אנודייז זהב',
+    hsPlenum: 'תא יניקה דו-גיר',
+    hsPulleys: 'גלגלות + רצועת תזמון',
+    hsCaliper: 'סוללי 6-בוכנות מונובלוק',
+    hsDisc: 'דיסק קרמי-פחמני · Ø410 מ"מ',
+    hsKnob: 'בקרת ריסון · 24 שלבים',
+    hsSpring: 'קפיץ הליקלי מתקדם',
+    specMaterial: 'חומר',
+    specDimension: 'מידה',
+    specWeight: 'משקל',
+    specWarranty: 'אחריות',
+    specTorque: 'מומנט',
+    specPower: 'הספק',
+    specRpm: 'סיבובים מקס׳',
+    specHeat: 'עמידות תרמית',
+    specHeight: 'גובה',
+    specDamp: 'שלבי ריסון',
+    tweaks: 'הגדרות חיות',
+    tweakVisual: 'ויזואל',
+    tweakAccent: 'צבע מותג',
+    tweakBody: 'צבע גוף הרכב',
+    tweakBloom: 'עוצמת זוהר',
+    tweakMotion: 'תנועה',
+    tweakLerp: 'אינרציית מצלמה',
+    tweakScroll: 'אורך גלילה',
+    tweakLocale: 'שפה',
+    tweakJump: 'דילוג מהיר',
+    tweakJumpEngine: 'מנוע',
+    tweakJumpBrakes: 'בלמים',
+    tweakJumpSuspension: 'מתלים',
+    tweakJumpOutro: 'סיכום',
+    tweakReset: 'איפוס',
+    soundOn: 'קול ON',
+    soundOff: 'קול OFF',
+  },
+  en: {
+    brand: 'GENERAL PARTS',
+    nav: ['Showroom', 'Engine', 'Brakes', 'Suspension', 'Catalogue'],
+    introIndex: 'CHAPTER 01 · INTRO',
+    introTitle: 'Part. Will. Perfection.',
+    introBody: 'A digital showroom for premium automotive spare parts. English engineering, Italian execution, German durability — at General Parts every component is selected with utmost care.',
+    engineIndex: 'CHAPTER 02 · ENGINE',
+    engineTitle: 'The breathing heart.',
+    engineBody: '4.0-liter V8 block, lightweight aluminum casting, gold-anodised aluminum valve covers. Peak output of 612 hp, peak torque 568 Nm, redline 8,500 rpm.',
+    brakesIndex: 'CHAPTER 03 · BRAKES',
+    brakesTitle: 'Carbon ceramic, gold finish.',
+    brakesBody: '410mm carbon-ceramic discs, 6-piston monobloc machined calipers. Thermal endurance up to 1,200°C, 50% lighter than cast iron — sharper acceleration and braking.',
+    suspensionIndex: 'CHAPTER 04 · SUSPENSION',
+    suspensionTitle: 'Tuned in 24 clicks.',
+    suspensionBody: 'Coil-over suspension with manually adjustable damping and advanced helical spring. Ride height adjustable ±25mm, damping in 24 precise clicks — track-to-street ready.',
+    outroIndex: 'CHAPTER 05 · CONFIGURE',
+    outro: ['Configure', 'your', 'piece.'],
+    outroBody: 'Every part is personalized to your vehicle configuration. Book a consultation with our General Parts specialists.',
+    ctaPrimary: 'Request a viewing',
+    ctaSecondary: 'Talk to a specialist',
+    returnTop: 'Return to top',
+    streaming: 'STREAMING ASSETS',
+    scroll: 'SCROLL',
+    chapters: ['Intro', 'Engine', 'Brakes', 'Suspension', 'Outro'],
+    hsValveCover: 'Valve cover · gold anodised',
+    hsPlenum: 'Twin-scroll plenum',
+    hsPulleys: 'Pulleys + drive belt',
+    hsCaliper: '6-piston monobloc caliper',
+    hsDisc: 'Carbon-ceramic disc · Ø410mm',
+    hsKnob: 'Damping adjuster · 24 clicks',
+    hsSpring: 'Progressive helical spring',
+    specMaterial: 'Material',
+    specDimension: 'Dimension',
+    specWeight: 'Weight',
+    specWarranty: 'Warranty',
+    specTorque: 'Torque',
+    specPower: 'Power',
+    specRpm: 'Max RPM',
+    specHeat: 'Heat tolerance',
+    specHeight: 'Height',
+    specDamp: 'Damping steps',
+    tweaks: 'LIVE TWEAKS',
+    tweakVisual: 'Visual',
+    tweakAccent: 'Accent',
+    tweakBody: 'Body color',
+    tweakBloom: 'Bloom',
+    tweakMotion: 'Motion',
+    tweakLerp: 'Camera inertia',
+    tweakScroll: 'Scroll length',
+    tweakLocale: 'Locale',
+    tweakJump: 'Jump',
+    tweakJumpEngine: 'Engine',
+    tweakJumpBrakes: 'Brakes',
+    tweakJumpSuspension: 'Suspension',
+    tweakJumpOutro: 'Outro',
+    tweakReset: 'Reset',
+    soundOn: 'SOUND ON',
+    soundOff: 'SOUND OFF',
+  },
+};
+
+/* ───────── Per-chapter info data ───────── */
+function getChapterInfo(chapter, t) {
+  switch (chapter) {
+    case 0:
+      return {
+        index: t.introIndex,
+        title: t.introTitle,
+        body: t.introBody,
+        specs: [
+          { label: t.specMaterial, value: 'Carbon · Alu · Ti' },
+          { label: t.specWarranty, value: '36mo' },
+        ],
+      };
+    case 1:
+      return {
+        index: t.engineIndex,
+        title: t.engineTitle,
+        body: t.engineBody,
+        specs: [
+          { label: t.specPower, value: '612 HP' },
+          { label: t.specTorque, value: '568 Nm' },
+          { label: t.specRpm, value: '8500' },
+          { label: t.specMaterial, value: 'Alu / CF' },
+        ],
+      };
+    case 2:
+      return {
+        index: t.brakesIndex,
+        title: t.brakesTitle,
+        body: t.brakesBody,
+        specs: [
+          { label: t.specDimension, value: 'Ø410 mm' },
+          { label: t.specHeat, value: '1200°C' },
+          { label: t.specWeight, value: '-50%' },
+          { label: t.specMaterial, value: 'C-Ceramic' },
+        ],
+      };
+    case 3:
+      return {
+        index: t.suspensionIndex,
+        title: t.suspensionTitle,
+        body: t.suspensionBody,
+        specs: [
+          { label: t.specDamp, value: '24' },
+          { label: t.specHeight, value: '±25 mm' },
+          { label: t.specMaterial, value: 'Aluminum' },
+          { label: t.specWarranty, value: '60mo' },
+        ],
+      };
+    case 4:
+    default:
+      return null;
+  }
+}
+
+/* ───────── Language hook (sync with app state + custom event) ───────── */
+function useLanguage() {
+  const [lang, setLangState] = useState(window.appState.language);
+  useEffect(() => {
+    const onChange = (e) => setLangState(e.detail);
+    window.addEventListener('app:lang', onChange);
+    return () => window.removeEventListener('app:lang', onChange);
+  }, []);
+  const setLang = useCallback((l) => window.appState.setLanguage(l), []);
+  return [lang, setLang];
+}
+
+/* ───────── Animation frame state subscription ───────── */
+function useAppFrame() {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    let raf;
+    const tick = () => {
+      setTick(t => (t + 1) % 1000000);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return window.appState;
+}
+
+/* ───────── Preloader ───────── */
+function Preloader({ t }) {
+  const [pct, setPct] = useState(0);
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    const onP = () => setPct(window.appState.loaded);
+    const onL = () => { setPct(100); setTimeout(() => setDone(true), 600); };
+    window.addEventListener('app:progress', onP);
+    window.addEventListener('app:loaded', onL);
+    return () => {
+      window.removeEventListener('app:progress', onP);
+      window.removeEventListener('app:loaded', onL);
+    };
+  }, []);
+  return (
+    <div className={`preloader ${done ? 'done' : ''}`} aria-hidden={done}>
+      <div className="preloader__inner">
+        <div
+          className="preloader__wordmark"
+          style={{ backgroundPosition: `0% ${100 - pct}%` }}
+        >
+          {t.brand}
+        </div>
+        <div className="preloader__bar" style={{ '--p': pct / 100 }} aria-label={`${pct}%`} />
+        <div className="preloader__caption">{t.streaming} {String(pct).padStart(3, '0')}/100</div>
+      </div>
+    </div>
+  );
+}
+
+/* ───────── Top bar ───────── */
+function TopBar({ t, lang, setLang, soundOn, toggleSound }) {
+  const state = useAppFrame();
+  const ch = state.chapter;
+  return (
+    <header className="topbar">
+      <div className="topbar__brand">
+        <span className="dot" aria-hidden="true" />
+        <span>{t.brand}</span>
+      </div>
+      <nav className="topbar__nav" aria-label="ניווט פרקים">
+        {t.nav.map((label, i) => (
+          <button
+            key={i}
+            className={i === ch ? 'active' : ''}
+            onClick={() => window.appState.jumpTo(i === 0 ? 0 : i === 1 ? 0.34 : i === 2 ? 0.62 : i === 3 ? 0.82 : 0.99)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+      <div className="topbar__tools">
+        <button
+          className="icon-btn"
+          aria-label={soundOn ? t.soundOn : t.soundOff}
+          onClick={toggleSound}
+          title={soundOn ? t.soundOn : t.soundOff}
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4">
+            <path d="M3 6v4h2.5L9 12V4L5.5 6H3z" />
+            {soundOn && <path d="M11 5.5c1 0.8 1 4.2 0 5" />}
+            {soundOn && <path d="M12.5 4c1.5 1.2 1.5 6.8 0 8" />}
+            {!soundOn && <line x1="11" y1="5" x2="14" y2="11" />}
+            {!soundOn && <line x1="14" y1="5" x2="11" y2="11" />}
+          </svg>
+        </button>
+        <button
+          className="lang-toggle"
+          onClick={() => setLang(lang === 'he' ? 'en' : 'he')}
+          aria-label="החלף שפה"
+        >
+          {lang === 'he' ? 'EN' : 'עב'}
+        </button>
+      </div>
+    </header>
+  );
+}
+
+/* ───────── Side rail ───────── */
+function SideRail({ t }) {
+  const state = useAppFrame();
+  const ch = state.chapter;
+  const targets = [0, 0.34, 0.62, 0.82, 0.99];
+  return (
+    <div className="siderail" aria-label="פרקים">
+      {t.chapters.map((label, i) => (
+        <button
+          key={i}
+          className={`siderail__item ${ch === i ? 'active' : ''}`}
+          onClick={() => window.appState.jumpTo(targets[i])}
+          aria-label={`עבור ל${label}`}
+        >
+          <span className="bar" />
+          <span className="label">{label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/* ───────── Info card ───────── */
+function InfoCard({ t }) {
+  const state = useAppFrame();
+  const info = getChapterInfo(state.chapter, t);
+  if (!info) return null;
+  return (
+    <aside className={`infocard visible`} aria-live="polite">
+      <div className="infocard__index">{info.index}</div>
+      <h2 className="infocard__title">{info.title}</h2>
+      <p className="infocard__body">{info.body}</p>
+      <div className="infocard__specs">
+        {info.specs.map((s, i) => (
+          <div key={i}>
+            <div className="infocard__spec-label">{s.label}</div>
+            <div className="infocard__spec-value">{s.value}</div>
+          </div>
+        ))}
+      </div>
+      <button className="infocard__cta" onClick={() => window.appState.jumpTo(0.99)}>
+        {t.ctaPrimary}
+      </button>
+    </aside>
+  );
+}
+
+/* ───────── Bottom dock ───────── */
+function BottomDock({ t }) {
+  const state = useAppFrame();
+  const p = state.progress;
+  const ch = state.chapter;
+  const pct = Math.round(p * 100);
+  const targets = [0, 0.34, 0.62, 0.82, 0.99];
+  return (
+    <footer className="dock">
+      <div className="dock__progress" aria-label={`התקדמות ${pct} אחוז`}>
+        <span className="label-top">{t.chapters[ch] || ''}</span>
+        <span className="number" dir="ltr">{String(pct).padStart(2, '0')}<span style={{ color: 'var(--ink-mute)', fontSize: '0.5em' }}>/100</span></span>
+      </div>
+      <div className="dock__timeline">
+        <div className="dock__timeline-track">
+          <div className="dock__timeline-fill" style={{ '--p': p }} />
+        </div>
+        <div className="dock__timeline-dots">
+          {targets.map((tp, i) => (
+            <button
+              key={i}
+              className={`dock__timeline-dot ${ch === i ? 'active' : ''}`}
+              style={{ insetInlineStart: `${tp * 100}%` }}
+              onClick={() => window.appState.jumpTo(tp)}
+              aria-label={`עבור ל${t.chapters[i]}`}
+            />
+          ))}
+        </div>
+        <div className="dock__timeline-labels">
+          {targets.map((tp, i) => (
+            <span key={i} className="dock__timeline-label" style={{ insetInlineStart: `${tp * 100}%` }}>
+              {t.chapters[i]}
+            </span>
+          ))}
+        </div>
+      </div>
+      <div className="dock__scroll">
+        <span>{t.scroll}</span>
+        <span className="line" aria-hidden="true" />
+      </div>
+    </footer>
+  );
+}
+
+/* ───────── Hotspots ───────── */
+function Hotspots({ t }) {
+  const state = useAppFrame();
+  const ch = state.chapter;
+  const positions = state._hotspotScreenPositions || { engine: [], brakes: [], suspension: [] };
+
+  let activeSet = null;
+  let activeOpacity = 0;
+
+  if (ch === 1) {
+    activeSet = positions.engine;
+    activeOpacity = Math.min(1, Math.max(0, (state.progress - 0.24) / 0.06)) * (1 - Math.max(0, (state.progress - 0.44) / 0.06));
+  } else if (ch === 2) {
+    activeSet = positions.brakes;
+    activeOpacity = Math.min(1, Math.max(0, (state.progress - 0.58) / 0.04)) * (1 - Math.max(0, (state.progress - 0.66) / 0.06));
+  } else if (ch === 3) {
+    activeSet = positions.suspension;
+    activeOpacity = Math.min(1, Math.max(0, (state.progress - 0.78) / 0.04)) * (1 - Math.max(0, (state.progress - 0.86) / 0.06));
+  }
+
+  activeOpacity = Math.max(0, Math.min(1, activeOpacity));
+
+  if (!activeSet || activeOpacity < 0.01) return null;
+
+  return (
+    <>
+      {activeSet.map((hs, i) => {
+        if (hs.z > 1 || hs.z < -1) return null; // behind camera
+        return (
+          <div
+            key={hs.name}
+            className="hotspot"
+            style={{
+              transform: `translate3d(${hs.x}px, ${hs.y}px, 0) translate(-50%, -50%)`,
+              opacity: activeOpacity,
+            }}
+          >
+            <div className="hotspot__dot">
+              <div className="hotspot__dot-inner" />
+            </div>
+            <div className="hotspot__label">{t[hs.name]}</div>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+/* ───────── Outro ───────── */
+function Outro({ t }) {
+  const state = useAppFrame();
+  const visible = state.progress > 0.88;
+  return (
+    <section className={`outro ${visible ? 'visible' : ''}`} aria-hidden={!visible}>
+      <div className="outro__inner">
+        <h2 className="outro__title">
+          {t.outro[0]} <span className="gold-italic">{t.outro[1]}</span> {t.outro[2]}
+        </h2>
+        <p className="outro__body">{t.outroBody}</p>
+        <div className="outro__ctas">
+          <a href="#contact" className="btn btn--primary">{t.ctaPrimary}</a>
+          <a href="#contact" className="btn">{t.ctaSecondary}</a>
+        </div>
+        <button className="outro__return" onClick={() => window.appState.jumpTo(0)}>
+          ↑ {t.returnTop}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/* ───────── Decorative (vignette, grain, light pools, big stroke number, reticle) ───────── */
+function Decorative({ t }) {
+  const state = useAppFrame();
+  const ch = state.chapter;
+  const showReticle = state.progress > 0.04 && state.progress < 0.92;
+  return (
+    <>
+      <div className="decorative pass-through" aria-hidden="true">
+        <div className="decorative__pool decorative__pool--1" />
+        <div className="decorative__pool decorative__pool--2" />
+        <div className="decorative__pool decorative__pool--3" />
+        <div className="decorative__bg-number">{String(ch + 1).padStart(2, '0')}</div>
+        <div className="decorative__grain" />
+        <div className="decorative__vignette" />
+      </div>
+      <svg className={`reticle pass-through ${showReticle ? '' : 'hidden'}`} viewBox="0 0 220 220" aria-hidden="true">
+        {/* Corner brackets */}
+        <g stroke="var(--gold)" strokeWidth="1" fill="none" opacity="0.7">
+          <path d="M10 30 L10 10 L30 10" />
+          <path d="M190 10 L210 10 L210 30" />
+          <path d="M210 190 L210 210 L190 210" />
+          <path d="M30 210 L10 210 L10 190" />
+        </g>
+        {/* Center crosshair circle */}
+        <circle cx="110" cy="110" r="14" stroke="var(--gold)" strokeWidth="0.8" fill="none" opacity="0.6" />
+        <line x1="100" y1="110" x2="120" y2="110" stroke="var(--gold)" strokeWidth="0.8" opacity="0.6" />
+        <line x1="110" y1="100" x2="110" y2="120" stroke="var(--gold)" strokeWidth="0.8" opacity="0.6" />
+        {/* Edge ticks */}
+        <g stroke="var(--gold)" strokeWidth="0.8" opacity="0.5">
+          <line x1="110" y1="2" x2="110" y2="10" />
+          <line x1="110" y1="210" x2="110" y2="218" />
+          <line x1="2" y1="110" x2="10" y2="110" />
+          <line x1="210" y1="110" x2="218" y2="110" />
+        </g>
+      </svg>
+    </>
+  );
+}
+
+/* ───────── Tweaks panel ───────── */
+function TweaksPanel({ t, lang, setLang }) {
+  const [minimized, setMinimized] = useState(false);
+  const [accent, setAccent] = useState(window.appState.accent);
+  const [body, setBody] = useState(window.appState.body);
+  const [bloom, setBloom] = useState(window.appState.bloomTweak);
+  const [lerpStrength, setLerpStrength] = useState(window.appState.lerpStrength);
+  const [scrollLen, setScrollLen] = useState(window.appState.scrollLength);
+
+  const accentSwatches = ['#c8a567', '#00e5ff', '#ff3b30', '#7af0a0', '#d97757'];
+  const bodySwatches = ['#1a1a1a', '#0f1a2a', '#5a0a0a', '#1a1a25', '#262626', '#8a6a1a'];
+
+  const onAccent = (c) => { setAccent(c); window.appState.setAccent(c); };
+  const onBody = (c) => { setBody(c); window.appState.setBody(c); };
+  const onBloom = (v) => { setBloom(v); window.appState.setBloom(v); };
+  const onLerp = (v) => { setLerpStrength(v); window.appState.setLerp(v); };
+  const onScrollLen = (v) => { setScrollLen(v); window.appState.setScrollLength(v); };
+
+  const reset = () => {
+    onAccent('#c8a567');
+    onBody('#0a0a0c');
+    onBloom(1.0);
+    onLerp(0.08);
+    onScrollLen(1.0);
+    window.appState.jumpTo(0);
+  };
+
+  if (minimized) {
+    return (
+      <button className="tweaks__fab" onClick={() => setMinimized(false)} aria-label={t.tweaks}>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.4">
+          <circle cx="9" cy="9" r="2.4" />
+          <path d="M9 1v3M9 14v3M1 9h3M14 9h3M3.6 3.6l2.1 2.1M12.3 12.3l2.1 2.1M3.6 14.4l2.1-2.1M12.3 5.7l2.1-2.1" />
+        </svg>
+      </button>
+    );
+  }
+
+  return (
+    <div className="tweaks" role="region" aria-label={t.tweaks}>
+      <div className="tweaks__handle">
+        <span>{t.tweaks}</span>
+        <button className="tweaks__close" onClick={() => setMinimized(true)} aria-label="סגור">
+          <svg width="14" height="14" viewBox="0 0 14 14"><line x1="3" y1="3" x2="11" y2="11" stroke="currentColor" /><line x1="11" y1="3" x2="3" y2="11" stroke="currentColor" /></svg>
+        </button>
+      </div>
+      <div className="tweaks__body">
+        <div className="tweaks__section">
+          <h4>{t.tweakVisual}</h4>
+          <div className="tweaks__row"><label>{t.tweakAccent}</label></div>
+          <div className="tweaks__swatches">
+            {accentSwatches.map(c => (
+              <button
+                key={c}
+                className={`tweaks__swatch ${accent === c ? 'active' : ''}`}
+                style={{ background: c }}
+                onClick={() => onAccent(c)}
+                aria-label={c}
+              />
+            ))}
+          </div>
+          <div className="tweaks__row" style={{ marginTop: 12 }}><label>{t.tweakBody}</label></div>
+          <div className="tweaks__swatches">
+            {bodySwatches.map(c => (
+              <button
+                key={c}
+                className={`tweaks__swatch ${body === c ? 'active' : ''}`}
+                style={{ background: c }}
+                onClick={() => onBody(c)}
+                aria-label={c}
+              />
+            ))}
+          </div>
+          <div className="tweaks__row" style={{ marginTop: 12 }}>
+            <label>{t.tweakBloom}</label>
+            <input type="range" min="0" max="2" step="0.05" value={bloom} onChange={e => onBloom(+e.target.value)} />
+            <span className="value">{bloom.toFixed(2)}</span>
+          </div>
+        </div>
+
+        <div className="tweaks__section">
+          <h4>{t.tweakMotion}</h4>
+          <div className="tweaks__row">
+            <label>{t.tweakLerp}</label>
+            <input type="range" min="0.02" max="0.30" step="0.01" value={lerpStrength} onChange={e => onLerp(+e.target.value)} />
+            <span className="value">{lerpStrength.toFixed(2)}</span>
+          </div>
+          <div className="tweaks__row">
+            <label>{t.tweakScroll}</label>
+            <input type="range" min="0.5" max="2.5" step="0.1" value={scrollLen} onChange={e => onScrollLen(+e.target.value)} />
+            <span className="value">{scrollLen.toFixed(1)}</span>
+          </div>
+        </div>
+
+        <div className="tweaks__section">
+          <h4>{t.tweakLocale}</h4>
+          <div className="tweaks__radios">
+            <label>
+              <input type="radio" name="lang" checked={lang === 'en'} onChange={() => setLang('en')} />
+              English
+            </label>
+            <label>
+              <input type="radio" name="lang" checked={lang === 'he'} onChange={() => setLang('he')} />
+              עברית
+            </label>
+          </div>
+        </div>
+
+        <div className="tweaks__section">
+          <h4>{t.tweakJump}</h4>
+          <div className="tweaks__jumps">
+            <button onClick={() => window.appState.jumpTo(0.34)}>{t.tweakJumpEngine}</button>
+            <button onClick={() => window.appState.jumpTo(0.62)}>{t.tweakJumpBrakes}</button>
+            <button onClick={() => window.appState.jumpTo(0.82)}>{t.tweakJumpSuspension}</button>
+            <button onClick={() => window.appState.jumpTo(0.99)}>{t.tweakJumpOutro}</button>
+          </div>
+          <button
+            onClick={reset}
+            style={{
+              marginTop: 8,
+              width: '100%',
+              padding: 8,
+              border: '1px solid var(--rule)',
+              fontSize: 10,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              color: 'var(--ink-dim)',
+            }}
+          >
+            {t.tweakReset}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ───────── Root app ───────── */
+function App() {
+  const [lang, setLang] = useLanguage();
+  const t = COPY[lang];
+  const [soundOn, setSoundOn] = useState(false);
+
+  return (
+    <>
+      <h1 className="sr-only">{t.brand} — אולם תצוגה דיגיטלי לחלפי רכב יוקרתיים</h1>
+      <Preloader t={t} />
+      <Decorative t={t} />
+      <TopBar t={t} lang={lang} setLang={setLang} soundOn={soundOn} toggleSound={() => setSoundOn(s => !s)} />
+      <SideRail t={t} />
+      <InfoCard t={t} />
+      <Hotspots t={t} />
+      <BottomDock t={t} />
+      <Outro t={t} />
+      <TweaksPanel t={t} lang={lang} setLang={setLang} />
+      <div id="content" className="sr-only" />
+    </>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+
+</body>
+</html>
