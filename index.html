@@ -2313,6 +2313,23 @@ const carDetailMat = new THREE.MeshPhysicalMaterial({
   roughness: 0.5,
 });
 
+// Brighter, more reflective material for rims / wheel hubs
+const carWheelMat = new THREE.MeshPhysicalMaterial({
+  color: 0x8a8a90,
+  metalness: 1.0,
+  roughness: 0.28,
+  clearcoat: 0.6,
+  clearcoatRoughness: 0.15,
+  envMapIntensity: 1.4,
+});
+
+// Matte black for tire rubber
+const carTireMat = new THREE.MeshStandardMaterial({
+  color: 0x1a1a1c,
+  metalness: 0.0,
+  roughness: 0.92,
+});
+
 let carGroup = null;
 
 gltfLoader.load(
@@ -2329,8 +2346,16 @@ gltfLoader.load(
         child.visible = false;
         return;
       }
+      // Tires (rubber — keep matte and dark)
+      if (/tire|tyre|rubber/i.test(name) || /tire|tyre|rubber/i.test(matName)) {
+        child.material = carTireMat;
+      }
+      // Wheel rims / hubs — brighter polished alloy
+      else if (/wheel|rim|alloy|hub|spoke/i.test(name) || /wheel|rim|alloy/i.test(matName)) {
+        child.material = carWheelMat;
+      }
       // Body parts
-      if (/body|chassis|paint|shell/i.test(name) || /body|paint/i.test(matName)) {
+      else if (/body|chassis|paint|shell/i.test(name) || /body|paint/i.test(matName)) {
         child.material = carBodyMat;
       } else if (/glass|window|windscreen|windshield/i.test(name) || /glass/i.test(matName)) {
         child.material = carGlassMat;
