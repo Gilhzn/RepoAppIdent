@@ -292,14 +292,15 @@ img { display: block; max-width: 100%; }
   inset-inline-start: clamp(16px, 4vw, 48px);
   z-index: 25;
   max-width: min(440px, 80vw);
-  background: rgba(10, 10, 10, 0.55);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border: 1px solid var(--rule);
-  border-inline-start: 2px solid var(--gold);
+  background: rgba(8, 8, 10, 0.18);
+  backdrop-filter: blur(28px) saturate(160%) brightness(0.85);
+  -webkit-backdrop-filter: blur(28px) saturate(160%) brightness(0.85);
+  border: 1px solid rgba(244, 241, 234, 0.06);
+  border-inline-start: 1px solid var(--gold);
   padding: clamp(20px, 2.2vw, 28px);
   opacity: 0;
   transform: translateY(20px);
+  box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.6);
 }
 .infocard.visible { animation: infocard-in 520ms var(--ease) forwards; }
 @keyframes infocard-in {
@@ -730,14 +731,15 @@ img { display: block; max-width: 100%; }
   inset-inline-end: clamp(16px, 2vw, 32px);
   z-index: 50;
   width: min(320px, calc(100vw - 32px));
-  background: rgba(10, 10, 10, 0.92);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--rule-strong);
+  background: rgba(8, 8, 10, 0.32);
+  backdrop-filter: blur(28px) saturate(160%) brightness(0.8);
+  -webkit-backdrop-filter: blur(28px) saturate(160%) brightness(0.8);
+  border: 1px solid rgba(244, 241, 234, 0.08);
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--ink);
   transition: transform 320ms var(--ease), opacity 320ms var(--ease);
+  box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.6);
 }
 .tweaks.minimized {
   transform: translateY(calc(100% + 30px));
@@ -864,13 +866,15 @@ img { display: block; max-width: 100%; }
   z-index: 49;
   width: 44px; height: 44px;
   border-radius: 50%;
-  background: var(--bg-1);
-  border: 1px solid var(--rule-strong);
+  background: rgba(10, 10, 12, 0.35);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(244, 241, 234, 0.10);
   display: grid;
   place-items: center;
   color: var(--ink-dim);
   cursor: pointer;
-  transition: border-color 200ms, color 200ms;
+  transition: border-color 200ms, color 200ms, background 200ms;
 }
 .tweaks__fab:hover { border-color: var(--gold); color: var(--gold); }
 
@@ -1230,346 +1234,563 @@ function makeChrome() {
 }
 
 /* ═════════════════════════════════════════════════════════════════ */
-/* PROCEDURAL: V8 Engine                                              */
+/* PROCEDURAL: V8 Engine (high-detail, realistic)                     */
 /* ═════════════════════════════════════════════════════════════════ */
 function buildEngine() {
   const g = new THREE.Group();
-  const localMaterials = [];
+  const M = []; // materials with shared opacity
 
-  const blockMat = makeMetal(0x2a2a2d, { roughness: 0.5 });
-  const castMat = makeMatte(0x1a1a1c, { roughness: 0.85 });
-  const aluMat = makeMetal(0xa8a8ac, { roughness: 0.35 });
-  const carbonMat = makeMatte(0x0a0a0c, { roughness: 0.9 });
-  const chromeMat = makeChrome();
-  const accentMat = makeAccent();
-  const billetMat = makeAccent({ roughness: 0.25 });
-  const rubberMat = makeMatte(0x8a1818, { roughness: 0.95 });
-  const yellowMat = makeMatte(0xd9b540, { metalness: 0.3, roughness: 0.5 });
-  const orangeMat = new THREE.MeshStandardMaterial({ color: 0xff7a18, transparent: true, opacity: 1, emissive: 0x331600, emissiveIntensity: 0.3 });
-  const harnessMat = makeMatte(0x141416);
-  const glassMat = new THREE.MeshPhysicalMaterial({
+  // ─── Materials ──────────────────────────────────────────────────
+  const matBlock = new THREE.MeshPhysicalMaterial({
+    color: 0x2c2c30, metalness: 0.45, roughness: 0.72,
+    transparent: true, opacity: 1, depthWrite: true,
+  });
+  const matBlockDeep = new THREE.MeshPhysicalMaterial({
+    color: 0x18181c, metalness: 0.35, roughness: 0.85,
+    transparent: true, opacity: 1,
+  });
+  const matAlu = new THREE.MeshPhysicalMaterial({
+    color: 0xa0a0a4, metalness: 0.92, roughness: 0.34,
+    envMapIntensity: 1.25,
+    transparent: true, opacity: 1,
+  });
+  const matAluRough = new THREE.MeshPhysicalMaterial({
+    color: 0x6f7074, metalness: 0.78, roughness: 0.55,
+    transparent: true, opacity: 1,
+  });
+  const matChrome = new THREE.MeshPhysicalMaterial({
+    color: 0xd8d8dc, metalness: 1.0, roughness: 0.08,
+    envMapIntensity: 1.5, transparent: true, opacity: 1,
+  });
+  const matStainless = new THREE.MeshPhysicalMaterial({
+    color: 0x9a9aa0, metalness: 1.0, roughness: 0.22,
+    envMapIntensity: 1.2, transparent: true, opacity: 1,
+  });
+  const matTitanium = new THREE.MeshPhysicalMaterial({
+    color: 0x7a8089, metalness: 1.0, roughness: 0.38,
+    envMapIntensity: 1.0, transparent: true, opacity: 1,
+  });
+  const matAccent = makeAccent({ roughness: 0.18 });
+  const matBilletAccent = makeAccent({ roughness: 0.28 });
+  const matCarbon = new THREE.MeshPhysicalMaterial({
+    color: 0x0a0a0c, metalness: 0.06, roughness: 0.42,
+    clearcoat: 0.65, clearcoatRoughness: 0.10,
+    transparent: true, opacity: 1,
+  });
+  const matRubberBlack = new THREE.MeshStandardMaterial({
+    color: 0x101012, metalness: 0.0, roughness: 0.96,
+    transparent: true, opacity: 1,
+  });
+  const matRubberRed = new THREE.MeshStandardMaterial({
+    color: 0x701414, metalness: 0.1, roughness: 0.84,
+    transparent: true, opacity: 1,
+  });
+  const matRubberBlue = new THREE.MeshStandardMaterial({
+    color: 0x0e2c52, metalness: 0.1, roughness: 0.84,
+    transparent: true, opacity: 1,
+  });
+  const matPlasticBlack = new THREE.MeshPhysicalMaterial({
+    color: 0x141416, metalness: 0.05, roughness: 0.58,
+    transparent: true, opacity: 1,
+  });
+  const matCopper = new THREE.MeshPhysicalMaterial({
+    color: 0xa97455, metalness: 1.0, roughness: 0.36,
+    transparent: true, opacity: 1,
+  });
+  const matBoltSteel = new THREE.MeshPhysicalMaterial({
+    color: 0x6a6a6e, metalness: 1.0, roughness: 0.20,
+    transparent: true, opacity: 1,
+  });
+  const matYellow = new THREE.MeshStandardMaterial({
+    color: 0xc7a82a, metalness: 0.4, roughness: 0.45,
+    transparent: true, opacity: 1,
+  });
+  const matOrangeFluid = new THREE.MeshStandardMaterial({
+    color: 0xff7a18, transparent: true, opacity: 1,
+    emissive: 0x331600, emissiveIntensity: 0.3,
+  });
+  const matGlassFluid = new THREE.MeshPhysicalMaterial({
     color: 0xffffff, transmission: 0.4, opacity: 0.85, transparent: true,
     ior: 1.4, roughness: 0.2, metalness: 0, depthWrite: false,
   });
+  const matEngraveDark = new THREE.MeshStandardMaterial({
+    color: 0x3a2d12, metalness: 0.55, roughness: 0.60,
+    transparent: true, opacity: 1,
+  });
 
-  localMaterials.push(blockMat, castMat, aluMat, carbonMat, chromeMat, accentMat, billetMat, rubberMat, yellowMat, orangeMat, harnessMat, glassMat);
+  M.push(matBlock, matBlockDeep, matAlu, matAluRough, matChrome, matStainless,
+         matTitanium, matAccent, matBilletAccent, matCarbon, matRubberBlack,
+         matRubberRed, matRubberBlue, matPlasticBlack, matCopper, matBoltSteel,
+         matYellow, matOrangeFluid, matGlassFluid, matEngraveDark);
 
-  // Block
-  const block = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.17, 0.52), blockMat);
-  block.position.y = 0.085;
-  g.add(block);
+  // ─── Helpers ────────────────────────────────────────────────────
+  const hexBolt = (parent, x, y, z, r=0.006, h=0.010, mat=matBoltSteel) => {
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 6), mat);
+    b.position.set(x, y, z);
+    parent.add(b);
+    return b;
+  };
 
-  // Sump pan
-  const sump = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.07, 0.48), castMat);
-  sump.position.y = -0.035;
+  // ─── Sump pan (oil pan with cooling fins) ───────────────────────
+  const sump = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.10, 0.50), matBlockDeep);
+  sump.position.y = -0.090;
+  sump.castShadow = true;
   g.add(sump);
+  // Sump cooling fins (horizontal slats on outer face)
+  for (let i = 0; i < 8; i++) {
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.464, 0.004, 0.45), matAluRough);
+    fin.position.y = -0.130 + i * 0.011;
+    g.add(fin);
+  }
+  // Sump drain plug
+  const drainPlug = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.014, 6), matBoltSteel);
+  drainPlug.position.set(0.18, -0.144, 0.22);
+  drainPlug.rotation.x = Math.PI / 2;
+  g.add(drainPlug);
 
-  // Cast ridges (4 per side)
-  for (let s = 0; s < 2; s++) {
-    const side = s === 0 ? -1 : 1;
-    for (let i = 0; i < 4; i++) {
-      const r = new THREE.Mesh(
-        new THREE.BoxGeometry(0.02, 0.13, 0.04),
-        castMat
-      );
-      r.position.set(side * 0.255, 0.085, -0.18 + i * 0.12);
-      g.add(r);
+  // ─── Engine block ───────────────────────────────────────────────
+  const blockW = 0.42, blockH = 0.16, blockD = 0.52;
+  const block = new THREE.Mesh(new THREE.BoxGeometry(blockW, blockH, blockD), matBlock);
+  block.position.y = 0.045;
+  block.castShadow = true;
+  g.add(block);
+  // Water-jacket ribs (8 vertical ribs each side)
+  for (let s = -1; s <= 1; s += 2) {
+    for (let i = 0; i < 8; i++) {
+      const z = -blockD/2 + 0.04 + i * (blockD - 0.08) / 7;
+      const rib = new THREE.Mesh(new THREE.BoxGeometry(0.012, blockH - 0.02, 0.012), matBlock);
+      rib.position.set(s * (blockW/2 + 0.001), 0.045, z);
+      g.add(rib);
     }
   }
+  // Front timing cover (front of engine — flat plate with bolts in a circle)
+  const timingCover = new THREE.Mesh(new THREE.BoxGeometry(blockW - 0.02, blockH, 0.020), matAlu);
+  timingCover.position.set(0, 0.045, blockD/2 + 0.012);
+  g.add(timingCover);
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2;
+    hexBolt(g, Math.cos(a) * 0.11, 0.045 + Math.sin(a) * 0.06, blockD/2 + 0.024, 0.005, 0.008);
+  }
+  // Engine ID stamp pad (small recessed area on side of block)
+  const stampPad = new THREE.Mesh(new THREE.BoxGeometry(0.002, 0.022, 0.10), matAluRough);
+  stampPad.position.set(blockW/2 + 0.002, 0.060, 0.10);
+  g.add(stampPad);
 
-  // Cylinder banks (90° V)
+  // ─── Cylinder heads + banks (90° V) ─────────────────────────────
   for (let s = 0; s < 2; s++) {
     const side = s === 0 ? -1 : 1;
     const bank = new THREE.Group();
-    bank.position.set(side * 0.10, 0.21, 0);
-    bank.rotation.z = side * 0.55;
+    bank.position.set(side * 0.06, 0.12, 0);
+    bank.rotation.z = side * 0.65; // ~37° each side ≈ 74° total V
 
-    // Bank walls
-    const w1 = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.08, 0.50), blockMat);
-    w1.position.y = 0.05;
-    bank.add(w1);
-    const w2 = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.05, 0.48), blockMat);
-    w2.position.y = 0.115;
-    bank.add(w2);
+    // Cylinder head main body (cast aluminum)
+    const headW = 0.16, headH = 0.07, headD = 0.48;
+    const head = new THREE.Mesh(new THREE.BoxGeometry(headW, headH, headD), matAluRough);
+    head.position.y = 0.04;
+    bank.add(head);
+    // Cooling jacket ridges along top edge of head
+    for (let i = 0; i < 14; i++) {
+      const z = -headD/2 + 0.03 + i * (headD - 0.06) / 13;
+      const ridge = new THREE.Mesh(new THREE.BoxGeometry(headW + 0.003, 0.005, 0.008), matAluRough);
+      ridge.position.set(0, 0.078, z);
+      bank.add(ridge);
+    }
+    // Head bolts — visible chrome bolts in 2 rows (5 each)
+    for (let i = 0; i < 5; i++) {
+      const z = -0.18 + i * 0.09;
+      hexBolt(bank, -0.06, 0.080, z, 0.008, 0.012, matChrome);
+      hexBolt(bank, 0.06, 0.080, z, 0.008, 0.012, matChrome);
+    }
+    // Spark plug bosses (raised circles around plug holes — 4 visible)
+    for (let i = 0; i < 4; i++) {
+      const z = -0.18 + i * 0.12;
+      const boss = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.020, 16), matAluRough);
+      boss.position.set(0, 0.087, z);
+      bank.add(boss);
+    }
 
-    // Valve cover (GOLD ACCENT)
-    const cover = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.07, 0.50), accentMat);
-    cover.position.y = 0.18;
+    // Valve cover (GOLD ACCENT — sits on top of head)
+    const coverW = 0.13, coverH = 0.046, coverD = 0.44;
+    const cover = new THREE.Mesh(new THREE.BoxGeometry(coverW, coverH, coverD), matAccent);
+    cover.position.y = 0.122;
     cover.castShadow = true;
     bank.add(cover);
-
-    // 4 raised ribs on cover
+    // 4 raised lateral ribs on cover
     for (let i = 0; i < 4; i++) {
-      const rib = new THREE.Mesh(
-        new THREE.BoxGeometry(0.20, 0.012, 0.04),
-        accentMat
-      );
-      rib.position.set(0, 0.222, -0.18 + i * 0.12);
+      const rib = new THREE.Mesh(new THREE.BoxGeometry(coverW + 0.003, 0.008, 0.022), matAccent);
+      rib.position.set(0, 0.150, -0.165 + i * 0.110);
       bank.add(rib);
     }
-
-    // 10 hex bolts around cover perimeter
-    const boltGeo = new THREE.CylinderGeometry(0.008, 0.008, 0.014, 6);
+    // Center engraved strip
+    const camStrip = new THREE.Mesh(new THREE.BoxGeometry(coverW - 0.04, 0.003, coverD - 0.08), matEngraveDark);
+    camStrip.position.set(0, 0.148, 0);
+    bank.add(camStrip);
+    // 10 bolts around cover edge (5 each side)
     for (let i = 0; i < 5; i++) {
-      const z = -0.22 + i * 0.11;
-      for (let b = 0; b < 2; b++) {
-        const bolt = new THREE.Mesh(boltGeo, chromeMat);
-        bolt.position.set(b === 0 ? -0.10 : 0.10, 0.218, z);
-        bank.add(bolt);
-      }
+      const z = -0.18 + i * 0.09;
+      hexBolt(bank, -0.058, 0.148, z, 0.006, 0.010, matChrome);
+      hexBolt(bank, 0.058, 0.148, z, 0.006, 0.010, matChrome);
     }
 
-    // 4 spark-plug coil packs
+    // Spark plug coil packs (4 — sticking up from valve cover)
     for (let i = 0; i < 4; i++) {
+      const z = -0.18 + i * 0.12;
       const coil = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.055, 16), carbonMat);
-      body.position.y = 0.028;
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.018, 0.060, 16), matPlasticBlack);
+      body.position.y = 0.030;
       coil.add(body);
-      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.020, 0.020, 0.010, 16), chromeMat);
-      cap.position.y = 0.060;
-      coil.add(cap);
-      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.018, 0.003, 8, 24), aluMat);
-      ring.rotation.x = Math.PI / 2;
-      ring.position.y = 0.005;
-      coil.add(ring);
-      coil.position.set(0, 0.255, -0.18 + i * 0.12);
+      const top = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.014, 0.012, 16), matRubberBlack);
+      top.position.y = 0.066;
+      coil.add(top);
+      // Side electrical connector
+      const conn = new THREE.Mesh(new THREE.BoxGeometry(0.020, 0.014, 0.012), matPlasticBlack);
+      conn.position.set(0.016, 0.040, 0);
+      coil.add(conn);
+      coil.position.set(0, 0.155, z);
       bank.add(coil);
     }
 
-    // 4 exhaust manifold runners (curved tubes)
+    // Exhaust manifold — 4-into-1 collector per side
     for (let i = 0; i < 4; i++) {
       const z = -0.18 + i * 0.12;
-      const startY = 0.14;
-      const sx = side * 0.11;
+      const startY = 0.04;
+      const collectorY = -0.08;
+      const collectorX = side * 0.18;
+      const collectorZ = 0;
       const curve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(sx, startY, z),
-        new THREE.Vector3(sx + side * 0.04, startY - 0.04, z),
-        new THREE.Vector3(sx + side * 0.08, startY - 0.10, z + 0.02),
-        new THREE.Vector3(sx + side * 0.12, startY - 0.14, z + 0.05),
+        new THREE.Vector3(side * 0.08, startY, z),
+        new THREE.Vector3(side * 0.10, startY - 0.02, z),
+        new THREE.Vector3(side * 0.13, startY - 0.06, z * 0.65),
+        new THREE.Vector3(side * 0.16, collectorY + 0.02, z * 0.3),
+        new THREE.Vector3(collectorX, collectorY, collectorZ),
       ]);
       const tube = new THREE.Mesh(
-        new THREE.TubeGeometry(curve, 14, 0.015, 8, false),
-        chromeMat
+        new THREE.TubeGeometry(curve, 18, 0.014, 10, false),
+        matTitanium
       );
       bank.add(tube);
+      // Header flange where runner meets head
+      const flange = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.018, 0.028), matStainless);
+      flange.position.set(side * 0.08, startY, z);
+      bank.add(flange);
+      hexBolt(bank, side * 0.08, startY + 0.014, z - 0.018, 0.004, 0.006);
+      hexBolt(bank, side * 0.08, startY + 0.014, z + 0.018, 0.004, 0.006);
     }
+    // Collector cone (merges 4 runners into 1)
+    const collectorCone = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.032, 0.020, 0.07, 16),
+      matStainless
+    );
+    collectorCone.position.set(side * 0.18, -0.08, 0);
+    collectorCone.rotation.z = -side * Math.PI / 2;
+    bank.add(collectorCone);
+    // Downpipe exits rearward
+    const downpipe = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.020, 0.020, 0.12, 16),
+      matStainless
+    );
+    downpipe.position.set(side * 0.18, -0.08, -0.14);
+    downpipe.rotation.x = Math.PI / 2;
+    bank.add(downpipe);
+    // O2 sensor (visible bung on collector)
+    const o2 = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.016, 12), matStainless);
+    o2.position.set(side * 0.18, -0.060, -0.04);
+    bank.add(o2);
+    const o2cap = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.014, 0.014), matPlasticBlack);
+    o2cap.position.set(side * 0.18, -0.048, -0.04);
+    bank.add(o2cap);
 
     g.add(bank);
   }
 
-  // Intake plenum (long cylinder bridging V)
-  const plenum = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.5, 24), aluMat);
+  // ─── Intake plenum (carbon fiber, rounded capsule shape) ────────
+  const plenum = new THREE.Mesh(
+    new THREE.CapsuleGeometry(0.058, 0.36, 8, 24),
+    matCarbon
+  );
   plenum.rotation.z = Math.PI / 2;
-  plenum.position.set(0, 0.35, 0);
+  plenum.position.set(0, 0.30, 0);
   g.add(plenum);
-  const plenumCap1 = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 16), aluMat);
-  plenumCap1.position.set(0.25, 0.35, 0);
-  g.add(plenumCap1);
-  const plenumCap2 = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 16), aluMat);
-  plenumCap2.position.set(-0.25, 0.35, 0);
-  g.add(plenumCap2);
-  const throttle = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.06, 16), chromeMat);
-  throttle.rotation.x = Math.PI / 2;
-  throttle.position.set(0, 0.35, 0.08);
-  g.add(throttle);
+  // Throttle body (front of plenum) with visible butterfly
+  const tbBody = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.036, 0.036, 0.05, 24),
+    matAlu
+  );
+  tbBody.rotation.x = Math.PI / 2;
+  tbBody.position.set(0, 0.30, 0.18);
+  g.add(tbBody);
+  const butterfly = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.033, 0.033, 0.003, 16),
+    matAluRough
+  );
+  butterfly.rotation.x = Math.PI / 2;
+  butterfly.rotation.y = 0.55; // slightly open
+  butterfly.position.set(0, 0.30, 0.19);
+  g.add(butterfly);
+  // Throttle position sensor on TB
+  const tps = new THREE.Mesh(new THREE.BoxGeometry(0.020, 0.024, 0.024), matPlasticBlack);
+  tps.position.set(0.046, 0.31, 0.18);
+  g.add(tps);
 
-  // 8 short intake runners (4 each side)
-  for (let s = 0; s < 2; s++) {
-    const side = s === 0 ? -1 : 1;
+  // 8 intake runners (4 each side, plenum → head) — visible curve
+  for (let s = -1; s <= 1; s += 2) {
     for (let i = 0; i < 4; i++) {
       const z = -0.18 + i * 0.12;
       const curve = new THREE.CatmullRomCurve3([
-        new THREE.Vector3(0, 0.33, 0),
-        new THREE.Vector3(side * 0.04, 0.30, z * 0.3),
-        new THREE.Vector3(side * 0.08, 0.26, z * 0.7),
-        new THREE.Vector3(side * 0.10, 0.22, z),
+        new THREE.Vector3(0, 0.28, z * 0.3),
+        new THREE.Vector3(s * 0.05, 0.25, z * 0.55),
+        new THREE.Vector3(s * 0.10, 0.20, z * 0.85),
+        new THREE.Vector3(s * 0.13, 0.17, z),
       ]);
       const tube = new THREE.Mesh(
-        new THREE.TubeGeometry(curve, 12, 0.018, 8, false),
-        aluMat
+        new THREE.TubeGeometry(curve, 14, 0.020, 10, false),
+        matCarbon
       );
       g.add(tube);
     }
   }
 
-  // 4 velocity stacks (bell-flared trumpets)
+  // 4 velocity stacks on top of plenum (signature performance look)
   for (let i = 0; i < 4; i++) {
     const pts = [];
-    for (let j = 0; j <= 10; j++) {
-      const y = j / 10;
-      const r = 0.025 + Math.pow(1 - y, 1.5) * 0.020;
-      pts.push(new THREE.Vector2(r, y * 0.07));
+    for (let j = 0; j <= 12; j++) {
+      const y = j / 12;
+      const r = 0.022 + Math.pow(1 - y, 1.7) * 0.016;
+      pts.push(new THREE.Vector2(r, y * 0.024));
     }
-    const stack = new THREE.Mesh(new THREE.LatheGeometry(pts, 24), chromeMat);
-    stack.position.set(-0.12 + i * 0.08, 0.405, 0);
+    const stack = new THREE.Mesh(new THREE.LatheGeometry(pts, 24), matStainless);
+    stack.position.set(-0.12 + i * 0.08, 0.38, 0);
     g.add(stack);
   }
 
-  // Fuel rail
-  const fuelRail = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.50, 16), chromeMat);
+  // Fuel rail along the plenum
+  const fuelRail = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.010, 0.010, 0.46, 16),
+    matStainless
+  );
   fuelRail.rotation.z = Math.PI / 2;
-  fuelRail.position.set(0, 0.32, -0.06);
+  fuelRail.position.set(0, 0.27, -0.10);
   g.add(fuelRail);
-  // 8 injector stubs + 2 end caps
   for (let i = 0; i < 8; i++) {
-    const inj = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.02, 12), aluMat);
-    inj.position.set(-0.21 + i * 0.06, 0.305, -0.06);
+    const x = -0.21 + i * 0.06;
+    const inj = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.026, 12), matAlu);
+    inj.position.set(x, 0.255, -0.10);
     g.add(inj);
-    const conn = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.018, 0.014), harnessMat);
-    conn.position.set(-0.21 + i * 0.06, 0.286, -0.06);
+    const conn = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.014, 0.012), matPlasticBlack);
+    conn.position.set(x, 0.235, -0.10);
     g.add(conn);
   }
-  for (let s = 0; s < 2; s++) {
-    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.012, 12, 12), chromeMat);
-    cap.position.set((s === 0 ? -1 : 1) * 0.25, 0.32, -0.06);
+  // Fuel rail end caps
+  for (let s = -1; s <= 1; s += 2) {
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.011, 16, 12), matChrome);
+    cap.position.set(s * 0.23, 0.27, -0.10);
     g.add(cap);
   }
+  // Fuel pressure regulator at one end
+  const fpr = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.030, 16), matAlu);
+  fpr.position.set(0.21, 0.30, -0.10);
+  g.add(fpr);
 
-  // AXIOM/General Parts billet plate (gold accent)
-  const billet = new THREE.Mesh(
-    new THREE.BoxGeometry(0.30, 0.018, 0.085),
-    billetMat
-  );
-  billet.position.set(0, 0.42, 0.16);
-  g.add(billet);
-  const engrave = new THREE.Mesh(
-    new THREE.BoxGeometry(0.26, 0.004, 0.03),
-    makeMatte(0x4a3a18, { metalness: 0.5, roughness: 0.6 })
-  );
-  engrave.position.set(0, 0.4295, 0.16);
-  g.add(engrave);
-  for (let i = 0; i < 4; i++) {
-    const x = i % 2 === 0 ? -0.14 : 0.14;
-    const z = i < 2 ? 0.135 : 0.185;
-    const bolt = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.018, 6), chromeMat);
-    bolt.position.set(x, 0.42, z);
-    g.add(bolt);
+  // ─── Ancillaries ────────────────────────────────────────────────
+  // Alternator (with cooling fins + pulley)
+  const altGroup = new THREE.Group();
+  altGroup.position.set(-0.21, -0.04, 0.20);
+  altGroup.rotation.z = -0.3;
+  const altBody = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.09, 24), matAlu);
+  altGroup.add(altBody);
+  for (let i = 0; i < 14; i++) {
+    const a = (i / 14) * Math.PI * 2;
+    const fin = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.080, 0.018), matAlu);
+    fin.position.set(Math.cos(a) * 0.058, 0, Math.sin(a) * 0.058);
+    fin.rotation.y = a;
+    altGroup.add(fin);
   }
+  const altPulley = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.014, 16), matChrome);
+  altPulley.position.y = 0.058;
+  altGroup.add(altPulley);
+  const altPulleyBolt = new THREE.Mesh(new THREE.CylinderGeometry(0.010, 0.010, 0.020, 6), matChrome);
+  altPulleyBolt.position.y = 0.072;
+  altGroup.add(altPulleyBolt);
+  // Alternator output stud (copper)
+  const altStud = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.018, 10), matCopper);
+  altStud.position.set(0.045, -0.030, 0);
+  altStud.rotation.z = Math.PI / 2;
+  altGroup.add(altStud);
+  g.add(altGroup);
 
-  // Pulleys (4 stacked discs)
-  for (let i = 0; i < 4; i++) {
-    const mat = i % 2 === 0 ? chromeMat : aluMat;
-    const r = 0.04 - i * 0.003;
-    const p = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.02, 24), mat);
-    p.rotation.x = Math.PI / 2;
-    p.position.set(0.27, 0.18, 0.28);
-    p.position.z -= i * 0.022;
-    g.add(p);
-  }
-  const crankBolt = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.04, 6), chromeMat);
-  crankBolt.rotation.x = Math.PI / 2;
-  crankBolt.position.set(0.27, 0.18, 0.30);
-  g.add(crankBolt);
+  // Crankshaft pulley (front of engine)
+  const crankPulley = new THREE.Group();
+  crankPulley.position.set(0, -0.04, blockD/2 + 0.060);
+  crankPulley.rotation.x = Math.PI / 2;
+  const damper = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.052, 0.022, 32), matRubberBlack);
+  crankPulley.add(damper);
+  const pulleyDisc = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.042, 0.014, 32), matChrome);
+  pulleyDisc.position.y = 0.006;
+  crankPulley.add(pulleyDisc);
+  const pulleyBoss = new THREE.Mesh(new THREE.CylinderGeometry(0.020, 0.020, 0.022, 16), matAluRough);
+  pulleyBoss.position.y = 0.006;
+  crankPulley.add(pulleyBoss);
+  const crankBolt = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.014, 6), matBoltSteel);
+  crankBolt.position.y = 0.024;
+  crankPulley.add(crankBolt);
+  g.add(crankPulley);
 
-  // Belt loop (closed tube around ellipse)
+  // Drive belt — routes around crank pulley → alternator → tensioner pulley
   const beltCurve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(0.27, 0.25, 0.28),
-    new THREE.Vector3(0.31, 0.21, 0.28),
-    new THREE.Vector3(0.31, 0.15, 0.28),
-    new THREE.Vector3(0.27, 0.11, 0.28),
-    new THREE.Vector3(0.23, 0.15, 0.28),
-    new THREE.Vector3(0.23, 0.21, 0.28),
+    new THREE.Vector3(0.040, -0.020, blockD/2 + 0.060),
+    new THREE.Vector3(0.040, -0.080, blockD/2 + 0.040),
+    new THREE.Vector3(-0.100, -0.110, blockD/2 + 0.030),
+    new THREE.Vector3(-0.190, -0.075, blockD/2 + 0.020),
+    new THREE.Vector3(-0.220, 0.000, blockD/2 + 0.020),
+    new THREE.Vector3(-0.180, 0.040, blockD/2 + 0.030),
+    new THREE.Vector3(-0.080, 0.020, blockD/2 + 0.050),
+    new THREE.Vector3(-0.020, 0.020, blockD/2 + 0.060),
   ], true);
   const belt = new THREE.Mesh(
-    new THREE.TubeGeometry(beltCurve, 80, 0.005, 8, true),
-    makeMatte(0x111111)
+    new THREE.TubeGeometry(beltCurve, 100, 0.0045, 6, true),
+    matRubberBlack
   );
   g.add(belt);
+  // Tensioner pulley
+  const tensioner = new THREE.Group();
+  tensioner.position.set(-0.080, 0.020, blockD/2 + 0.050);
+  tensioner.rotation.x = Math.PI / 2;
+  const tensionerDisc = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.012, 16), matStainless);
+  tensioner.add(tensionerDisc);
+  const tensionerBolt = new THREE.Mesh(new THREE.CylinderGeometry(0.010, 0.010, 0.018, 6), matBoltSteel);
+  tensionerBolt.position.y = 0.012;
+  tensioner.add(tensionerBolt);
+  g.add(tensioner);
 
-  // 2 coolant hoses (red rubber)
-  for (let s = 0; s < 2; s++) {
-    const side = s === 0 ? -1 : 1;
-    const curve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(side * 0.25, 0.21, 0.18),
-      new THREE.Vector3(side * 0.28, 0.18, 0.20),
-      new THREE.Vector3(side * 0.32, 0.13, 0.22),
-      new THREE.Vector3(side * 0.32, 0.07, 0.26),
-    ]);
-    const hose = new THREE.Mesh(
-      new THREE.TubeGeometry(curve, 24, 0.020, 12, false),
-      rubberMat
-    );
+  // 2 coolant hoses with proper routing + clamps
+  const hosePaths = [
+    { mat: matRubberRed, points: [
+      new THREE.Vector3(0.21, 0.18, 0.18),
+      new THREE.Vector3(0.25, 0.12, 0.20),
+      new THREE.Vector3(0.28, 0.04, 0.22),
+      new THREE.Vector3(0.30, -0.04, 0.22),
+      new THREE.Vector3(0.30, -0.10, 0.22),
+    ]},
+    { mat: matRubberBlue, points: [
+      new THREE.Vector3(-0.18, 0.14, -0.20),
+      new THREE.Vector3(-0.23, 0.06, -0.22),
+      new THREE.Vector3(-0.27, -0.04, -0.22),
+      new THREE.Vector3(-0.30, -0.10, -0.22),
+    ]},
+  ];
+  for (const hp of hosePaths) {
+    const c = new THREE.CatmullRomCurve3(hp.points);
+    const hose = new THREE.Mesh(new THREE.TubeGeometry(c, 24, 0.018, 12, false), hp.mat);
     g.add(hose);
-    // Clamp rings
-    for (let i = 0; i < 2; i++) {
-      const pos = curve.getPointAt(i === 0 ? 0.05 : 0.95);
-      const tangent = curve.getTangentAt(i === 0 ? 0.05 : 0.95);
-      const clamp = new THREE.Mesh(
-        new THREE.TorusGeometry(0.022, 0.003, 8, 24),
-        chromeMat
-      );
-      clamp.position.copy(pos);
-      clamp.lookAt(pos.x + tangent.x, pos.y + tangent.y, pos.z + tangent.z);
+    for (const t of [0.04, 0.96]) {
+      const p = c.getPointAt(t), tan = c.getTangentAt(t);
+      const clamp = new THREE.Mesh(new THREE.TorusGeometry(0.021, 0.003, 8, 24), matChrome);
+      clamp.position.copy(p);
+      const m = new THREE.Matrix4().lookAt(new THREE.Vector3(), tan, new THREE.Vector3(0, 1, 0));
+      clamp.quaternion.setFromRotationMatrix(m);
       g.add(clamp);
     }
   }
 
-  // Wiring harness with zip-ties
+  // Main wiring harness with zip-ties
   const harnessCurve = new THREE.CatmullRomCurve3([
-    new THREE.Vector3(-0.25, 0.40, -0.10),
-    new THREE.Vector3(-0.10, 0.42, -0.10),
-    new THREE.Vector3(0.10, 0.42, -0.10),
-    new THREE.Vector3(0.25, 0.40, -0.10),
+    new THREE.Vector3(-0.24, 0.22, -0.13),
+    new THREE.Vector3(-0.12, 0.24, -0.13),
+    new THREE.Vector3(0.00, 0.24, -0.13),
+    new THREE.Vector3(0.14, 0.22, -0.13),
+    new THREE.Vector3(0.22, 0.16, -0.10),
+    new THREE.Vector3(0.24, 0.08, 0.04),
   ]);
   const harness = new THREE.Mesh(
-    new THREE.TubeGeometry(harnessCurve, 30, 0.012, 8, false),
-    harnessMat
+    new THREE.TubeGeometry(harnessCurve, 40, 0.014, 10, false),
+    matRubberBlack
   );
   g.add(harness);
-  for (let i = 0; i < 4; i++) {
-    const pos = harnessCurve.getPointAt(0.15 + i * 0.22);
-    const zip = new THREE.Mesh(
-      new THREE.TorusGeometry(0.014, 0.002, 8, 16),
-      makeMatte(0x202024)
-    );
-    zip.position.copy(pos);
-    zip.rotation.y = Math.PI / 2;
+  for (let i = 0; i < 6; i++) {
+    const t = 0.08 + i * 0.16;
+    const p = harnessCurve.getPointAt(t), tan = harnessCurve.getTangentAt(t);
+    const zip = new THREE.Mesh(new THREE.TorusGeometry(0.016, 0.0022, 6, 16), matPlasticBlack);
+    zip.position.copy(p);
+    const m = new THREE.Matrix4().lookAt(new THREE.Vector3(), tan, new THREE.Vector3(0, 1, 0));
+    zip.quaternion.setFromRotationMatrix(m);
     g.add(zip);
   }
+  // ECU connector block at harness end
+  const ecuConn = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.024, 0.036), matPlasticBlack);
+  ecuConn.position.set(0.24, 0.06, 0.05);
+  g.add(ecuConn);
 
-  // Oil filter canister
-  const oilFilter = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.10, 24), makeMetal(0x141414));
-  oilFilter.position.set(-0.25, 0.04, 0.18);
+  // Oil filter canister + accent band
+  const oilFilter = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.090, 24), matBlock);
+  oilFilter.position.set(0.22, 0.00, 0.18);
+  oilFilter.rotation.x = Math.PI / 2;
   g.add(oilFilter);
-  // Oil cap (knurled)
-  const oilCap = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.022, 0.018, 32), aluMat);
-  oilCap.position.set(0.15, 0.43, -0.06);
+  const oilBand = new THREE.Mesh(new THREE.CylinderGeometry(0.0385, 0.0385, 0.014, 24), matBilletAccent);
+  oilBand.position.set(0.22, 0.00, 0.21);
+  oilBand.rotation.x = Math.PI / 2;
+  g.add(oilBand);
+
+  // Oil cap (knurled, gold)
+  const oilCap = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.020, 0.020, 32), matAccent);
+  oilCap.position.set(0.10, 0.38, -0.13);
   g.add(oilCap);
+  const oilCapRing = new THREE.Mesh(new THREE.TorusGeometry(0.024, 0.002, 6, 32), matAccent);
+  oilCapRing.position.set(0.10, 0.39, -0.13);
+  oilCapRing.rotation.x = Math.PI / 2;
+  g.add(oilCapRing);
+
   // Yellow dipstick
-  const dipBase = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.10, 12), aluMat);
-  dipBase.position.set(-0.18, 0.30, 0.20);
-  g.add(dipBase);
-  const dipHandle = new THREE.Mesh(new THREE.TorusGeometry(0.015, 0.005, 8, 16), yellowMat);
-  dipHandle.position.set(-0.18, 0.36, 0.20);
-  dipHandle.rotation.x = Math.PI / 2;
-  g.add(dipHandle);
+  const dipStem = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.11, 12), matAlu);
+  dipStem.position.set(-0.18, 0.13, 0.12);
+  g.add(dipStem);
+  const dipRing = new THREE.Mesh(new THREE.TorusGeometry(0.015, 0.006, 8, 16), matYellow);
+  dipRing.position.set(-0.18, 0.195, 0.12);
+  dipRing.rotation.x = Math.PI / 2;
+  g.add(dipRing);
 
-  // Coolant overflow tank
-  const tank = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.04, 0.04, 0.10, 20),
-    glassMat
-  );
-  tank.position.set(0.20, 0.10, 0.20);
+  // Coolant overflow tank (translucent)
+  const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.040, 0.040, 0.092, 20), matGlassFluid);
+  tank.position.set(0.22, 0.07, -0.21);
   g.add(tank);
-  const tankCap = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.030, 0.018, 16), accentMat);
-  tankCap.position.set(0.20, 0.165, 0.20);
+  const tankFluid = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.040, 20), matOrangeFluid);
+  tankFluid.position.set(0.22, 0.05, -0.21);
+  g.add(tankFluid);
+  const tankCap = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.030, 0.018, 16), matAccent);
+  tankCap.position.set(0.22, 0.125, -0.21);
   g.add(tankCap);
-  const fluid = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.038, 0.038, 0.005, 20),
-    orangeMat
-  );
-  fluid.position.set(0.20, 0.04, 0.20);
-  g.add(fluid);
 
-  // 2 engine mount feet
-  for (let s = 0; s < 2; s++) {
-    const side = s === 0 ? -1 : 1;
-    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.05, 0.08), blockMat);
-    foot.position.set(side * 0.26, -0.04, -0.20);
-    g.add(foot);
+  // Engine mounts (2 — brackets w/ rubber bushings)
+  for (let s = -1; s <= 1; s += 2) {
+    const bracket = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.050, 0.060), matAluRough);
+    bracket.position.set(s * 0.25, -0.040, -0.18);
+    g.add(bracket);
+    const cushion = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.028, 16), matRubberBlack);
+    cushion.position.set(s * 0.25, -0.085, -0.18);
+    g.add(cushion);
+    const mountBolt = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.080, 6), matBoltSteel);
+    mountBolt.position.set(s * 0.25, -0.085, -0.18);
+    g.add(mountBolt);
   }
 
-  return { group: g, materials: localMaterials };
+  // GENERAL PARTS billet plate (top of plenum)
+  const billetPlate = new THREE.Mesh(
+    new THREE.BoxGeometry(0.30, 0.014, 0.060),
+    matBilletAccent
+  );
+  billetPlate.position.set(0, 0.395, -0.05);
+  g.add(billetPlate);
+  const billetEngrave = new THREE.Mesh(
+    new THREE.BoxGeometry(0.26, 0.003, 0.022),
+    matEngraveDark
+  );
+  billetEngrave.position.set(0, 0.404, -0.05);
+  g.add(billetEngrave);
+  hexBolt(g, -0.13, 0.398, -0.072, 0.005, 0.008);
+  hexBolt(g, 0.13, 0.398, -0.072, 0.005, 0.008);
+  hexBolt(g, -0.13, 0.398, -0.028, 0.005, 0.008);
+  hexBolt(g, 0.13, 0.398, -0.028, 0.005, 0.008);
+
+  return { group: g, materials: M };
 }
 
 /* ═════════════════════════════════════════════════════════════════ */
