@@ -2463,6 +2463,17 @@ onScroll();
 targetProgress = rawScrollProgress;
 currentProgress = rawScrollProgress;
 
+// FOV is vertical in three.js. On portrait (mobile) the horizontal FOV
+// shrinks dramatically, hiding the car at the sides. Boost vertical FOV
+// to keep the car well-framed regardless of aspect.
+function adjustFovForAspect(fov) {
+  const aspect = window.innerWidth / window.innerHeight;
+  if (aspect >= 1.4) return fov;            // landscape desktop — as designed
+  if (aspect >= 1.0) return fov * 1.08;     // near-square
+  if (aspect >= 0.7) return fov * 1.22;     // tablet portrait
+  return fov * 1.38;                         // phone portrait
+}
+
 function getCamAtProgress(p) {
   for (let i = 0; i < CAM.length - 1; i++) {
     const a = CAM[i];
@@ -2473,12 +2484,12 @@ function getCamAtProgress(p) {
       return {
         pos: [lerp(a.pos[0], b.pos[0], t), lerp(a.pos[1], b.pos[1], t), lerp(a.pos[2], b.pos[2], t)],
         tgt: [lerp(a.tgt[0], b.tgt[0], t), lerp(a.tgt[1], b.tgt[1], t), lerp(a.tgt[2], b.tgt[2], t)],
-        fov: lerp(a.fov, b.fov, t),
+        fov: adjustFovForAspect(lerp(a.fov, b.fov, t)),
       };
     }
   }
   const last = CAM[CAM.length - 1];
-  return { pos: last.pos, tgt: last.tgt, fov: last.fov };
+  return { pos: last.pos, tgt: last.tgt, fov: adjustFovForAspect(last.fov) };
 }
 
 /* ───────── Mutators ───────── */
