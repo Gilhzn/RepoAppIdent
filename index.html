@@ -174,6 +174,8 @@ img { display: block; max-width: 100%; }
   font-family: var(--font-display);
   font-size: 22px;
   letter-spacing: 0.20em;
+  white-space: nowrap;
+  color: var(--ink);
 }
 .topbar__brand .dot {
   width: 10px; height: 10px;
@@ -244,34 +246,49 @@ img { display: block; max-width: 100%; }
   z-index: 25;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 22px;
+  transition: opacity 400ms var(--ease);
 }
 .siderail__item {
+  /* row-reverse works in both LTR and RTL — places label inward, bar at viewport edge */
   display: flex;
+  flex-direction: row-reverse;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   color: var(--ink-mute);
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.26em;
   text-transform: uppercase;
   transition: color 320ms var(--ease);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: end;
 }
 .siderail__item .bar {
   width: 24px;
   height: 1px;
   background: var(--rule-strong);
   transition: width 320ms var(--ease), background 320ms var(--ease);
+  flex-shrink: 0;
 }
 .siderail__item.active { color: var(--ink); }
-.siderail__item.active .bar { width: 40px; background: var(--gold); }
+.siderail__item.active .bar { width: 44px; background: var(--gold); }
 .siderail__item:hover { color: var(--ink); }
-.siderail__item .label { white-space: nowrap; }
+.siderail__item:hover .bar { background: var(--gold); }
+.siderail__item .label {
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 280ms var(--ease);
+}
+.siderail__item.active .label,
+.siderail__item:hover .label { opacity: 1; }
 
 /* ───────── Info card ───────── */
 .infocard {
   position: fixed;
-  bottom: 100px;
+  bottom: 110px;
   inset-inline-start: clamp(16px, 4vw, 48px);
   z-index: 25;
   max-width: min(440px, 80vw);
@@ -279,13 +296,16 @@ img { display: block; max-width: 100%; }
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
   border: 1px solid var(--rule);
-  border-inline-start: 1px solid var(--gold);
-  padding: clamp(18px, 2.2vw, 26px);
+  border-inline-start: 2px solid var(--gold);
+  padding: clamp(20px, 2.2vw, 28px);
   opacity: 0;
   transform: translateY(20px);
-  transition: opacity 600ms var(--ease), transform 600ms var(--ease);
 }
-.infocard.visible { opacity: 1; transform: translateY(0); }
+.infocard.visible { animation: infocard-in 520ms var(--ease) forwards; }
+@keyframes infocard-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 .infocard__index {
   font-family: var(--font-mono);
   font-size: 10px;
@@ -296,18 +316,28 @@ img { display: block; max-width: 100%; }
 }
 .infocard__title {
   font-family: var(--font-display);
-  font-size: clamp(32px, 4vw, 56px);
+  font-size: clamp(34px, 4vw, 56px);
   letter-spacing: 0.02em;
   line-height: 1.0;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   text-wrap: balance;
   color: var(--ink);
 }
+[dir="rtl"] .infocard__title {
+  font-family: 'Heebo', 'Assistant', sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.005em;
+  line-height: 1.05;
+}
 .infocard__body {
-  font-size: 14.5px;
-  line-height: 1.65;
+  font-size: 15px;
+  line-height: 1.7;
   color: var(--ink-dim);
-  margin-bottom: 18px;
+  margin-bottom: 20px;
+}
+[dir="rtl"] .infocard__body {
+  font-size: 15.5px;
+  line-height: 1.75;
 }
 .infocard__specs {
   display: grid;
@@ -556,11 +586,21 @@ img { display: block; max-width: 100%; }
   letter-spacing: 0.04em;
   line-height: 0.92;
   text-wrap: balance;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
+}
+[dir="rtl"] .outro__title {
+  font-family: 'Heebo', 'Assistant', sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.0;
 }
 .outro__title .gold-italic {
   color: var(--gold);
   font-style: italic;
+}
+[dir="rtl"] .outro__title .gold-italic {
+  font-style: normal;
+  font-weight: 700;
 }
 .outro__body {
   font-size: clamp(15px, 1.4vw, 18px);
@@ -626,7 +666,7 @@ img { display: block; max-width: 100%; }
   user-select: none;
   pointer-events: none;
 }
-[dir="rtl"] .decorative__bg-number { inset-inline-end: auto; inset-inline-start: -2vw; }
+/* note: inset-inline-end automatically flips with dir, no override needed */
 .decorative__pool {
   position: absolute;
   width: 60vw;
@@ -849,57 +889,80 @@ img { display: block; max-width: 100%; }
 }
 .skip-link:focus { top: 10px; }
 
+/* ───────── Chrome fade in outro ───────── */
+body.chrome-fade .topbar,
+body.chrome-fade .dock,
+body.chrome-fade .siderail,
+body.chrome-fade .infocard,
+body.chrome-fade .reticle,
+body.chrome-fade .hotspot,
+body.chrome-fade .decorative__bg-number {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 500ms var(--ease);
+}
+
 /* ───────── Mobile ───────── */
 @media (max-width: 768px) {
-  .topbar { height: 56px; }
-  .topbar__brand { font-size: 18px; letter-spacing: 0.16em; }
+  .topbar { height: 56px; background: linear-gradient(180deg, rgba(5,5,5,0.92) 0%, rgba(5,5,5,0) 100%); }
+  .topbar__brand { font-size: 17px; letter-spacing: 0.16em; }
   .topbar__nav { display: none; }
   .topbar__tools { gap: 10px; }
-  .topbar__tools .lang-toggle { padding: 5px 10px; font-size: 10px; }
+  .topbar__tools .lang-toggle { padding: 6px 10px; font-size: 10px; }
 
   .siderail { display: none; }
 
   .infocard {
-    bottom: 140px;
+    bottom: 132px;
     inset-inline-start: 12px;
     inset-inline-end: 12px;
     max-width: none;
-    padding: 16px;
+    padding: 18px 16px;
+    border-inline-start: 2px solid var(--gold);
   }
-  .infocard__title { font-size: 28px; }
-  .infocard__body { font-size: 14px; }
-  .infocard__specs { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .infocard__cta { padding: 10px 16px; }
+  .infocard__title { font-size: 32px; line-height: 1.1; margin-bottom: 12px; }
+  .infocard__body { font-size: 14.5px; line-height: 1.65; margin-bottom: 14px; }
+  .infocard__specs { grid-template-columns: 1fr 1fr; gap: 10px; padding-block-start: 12px; }
+  .infocard__cta { padding: 11px 18px; font-size: 10px; margin-top: 16px; }
 
   .dock {
     grid-template-columns: 1fr;
-    gap: 8px;
-    padding: 12px 12px 14px;
+    gap: 10px;
+    padding: 12px 14px 16px;
   }
-  .dock__progress { flex-direction: row; align-items: baseline; gap: 12px; }
-  .dock__progress .number { font-size: 32px; }
+  .dock__progress { flex-direction: row; align-items: baseline; gap: 14px; }
+  .dock__progress .number { font-size: 30px; }
   .dock__scroll { display: none; }
+  .dock__timeline { height: 18px; }
   .dock__timeline-labels { display: none; }
 
   .hotspot { width: 36px; height: 36px; }
-  .hotspot__label { font-size: 9px; padding: 5px 8px; inset-inline-start: 46px; }
+  .hotspot__label { font-size: 9px; padding: 5px 8px; inset-inline-start: 46px; letter-spacing: 0.18em; }
 
-  .outro__title { font-size: clamp(40px, 13vw, 80px); }
-  .outro__body { font-size: 14px; }
+  .outro__title { font-size: clamp(40px, 13vw, 80px); margin-bottom: 20px; }
+  .outro__body { font-size: 14.5px; margin-bottom: 28px; }
   .btn { padding: 12px 20px; font-size: 10px; }
 
-  .reticle { width: 140px; height: 140px; }
+  .reticle { display: none; }
 
-  .tweaks { width: calc(100vw - 24px); inset-inline-end: 12px; bottom: 120px; }
-  .tweaks__fab { bottom: 140px; }
+  .tweaks { width: calc(100vw - 24px); inset-inline-end: 12px; bottom: 132px; max-height: calc(100vh - 280px); }
+  .tweaks__fab { bottom: 132px; }
 
-  .decorative__bg-number { font-size: clamp(180px, 50vw, 360px); }
+  .decorative__bg-number { font-size: clamp(180px, 50vw, 360px); opacity: 0.7; }
+  .decorative__pool { opacity: 0.3; }
+  .decorative__grain { opacity: 0.35; }
 }
 
 @media (max-width: 480px) {
-  .preloader__wordmark { font-size: clamp(44px, 16vw, 88px); }
-  .infocard { bottom: 130px; padding: 14px; }
-  .infocard__specs { grid-template-columns: 1fr; }
+  .preloader__wordmark { font-size: clamp(40px, 16vw, 78px); letter-spacing: 0.10em; }
+  .preloader__caption { font-size: 10px; letter-spacing: 0.24em; }
+  .infocard { bottom: 124px; padding: 16px; }
+  .infocard__title { font-size: 28px; }
+  .infocard__specs { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .infocard__spec-value { font-size: 13px; }
+  .outro__title { font-size: clamp(36px, 14vw, 68px); }
+  .topbar__brand { font-size: 15px; letter-spacing: 0.12em; }
+  .topbar__brand .dot { width: 8px; height: 8px; }
 }
 
 /* ───────── Reduced motion ───────── */
@@ -2121,6 +2184,11 @@ window.appState.setAccent = (hex) => {
   accentMaterials.forEach(m => m.color.copy(c));
   rimLight.color.copy(c);
   document.documentElement.style.setProperty('--gold', hex);
+  // Derive a 0.45-alpha glow color for box-shadows
+  const r = parseInt(hex.slice(1, 3), 16);
+  const gr = parseInt(hex.slice(3, 5), 16);
+  const bl = parseInt(hex.slice(5, 7), 16);
+  document.documentElement.style.setProperty('--gold-glow', `rgba(${r},${gr},${bl},0.45)`);
 };
 window.appState.setBody = (hex) => {
   window.appState.body = hex;
@@ -2490,10 +2558,15 @@ function TopBar({ t, lang, setLang, soundOn, toggleSound }) {
   const ch = state.chapter;
   return (
     <header className="topbar">
-      <div className="topbar__brand">
+      <button
+        className="topbar__brand"
+        onClick={() => window.appState.jumpTo(0)}
+        aria-label={`${t.brand} — חזרה למעלה`}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+      >
         <span className="dot" aria-hidden="true" />
         <span>{t.brand}</span>
-      </div>
+      </button>
       <nav className="topbar__nav" aria-label="ניווט פרקים">
         {t.nav.map((label, i) => (
           <button
@@ -2554,13 +2627,13 @@ function SideRail({ t }) {
   );
 }
 
-/* ───────── Info card ───────── */
+/* ───────── Info card (animates in on each chapter via key prop) ───────── */
 function InfoCard({ t }) {
   const state = useAppFrame();
   const info = getChapterInfo(state.chapter, t);
   if (!info) return null;
   return (
-    <aside className={`infocard visible`} aria-live="polite">
+    <aside key={state.chapter} className="infocard visible" aria-live="polite">
       <div className="infocard__index">{info.index}</div>
       <h2 className="infocard__title">{info.title}</h2>
       <p className="infocard__body">{info.body}</p>
@@ -2624,6 +2697,13 @@ function BottomDock({ t }) {
 }
 
 /* ───────── Hotspots ───────── */
+function smoothstepJS(a, b, x) {
+  const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+}
+function windowOpacity(p, [a, b, c, d]) {
+  return Math.min(smoothstepJS(a, b, p), 1 - smoothstepJS(c, d, p));
+}
 function Hotspots({ t }) {
   const state = useAppFrame();
   const ch = state.chapter;
@@ -2631,21 +2711,22 @@ function Hotspots({ t }) {
 
   let activeSet = null;
   let activeOpacity = 0;
+  const p = state.progress;
 
   if (ch === 1) {
     activeSet = positions.engine;
-    activeOpacity = Math.min(1, Math.max(0, (state.progress - 0.24) / 0.06)) * (1 - Math.max(0, (state.progress - 0.44) / 0.06));
+    activeOpacity = windowOpacity(p, [0.24, 0.30, 0.44, 0.48]);
   } else if (ch === 2) {
     activeSet = positions.brakes;
-    activeOpacity = Math.min(1, Math.max(0, (state.progress - 0.58) / 0.04)) * (1 - Math.max(0, (state.progress - 0.66) / 0.06));
+    activeOpacity = windowOpacity(p, [0.58, 0.61, 0.66, 0.70]);
   } else if (ch === 3) {
     activeSet = positions.suspension;
-    activeOpacity = Math.min(1, Math.max(0, (state.progress - 0.78) / 0.04)) * (1 - Math.max(0, (state.progress - 0.86) / 0.06));
+    activeOpacity = windowOpacity(p, [0.78, 0.81, 0.86, 0.90]);
   }
 
   activeOpacity = Math.max(0, Math.min(1, activeOpacity));
 
-  if (!activeSet || activeOpacity < 0.01) return null;
+  if (!activeSet || activeOpacity < 0.02) return null;
 
   return (
     <>
@@ -2683,8 +2764,20 @@ function Outro({ t }) {
         </h2>
         <p className="outro__body">{t.outroBody}</p>
         <div className="outro__ctas">
-          <a href="#contact" className="btn btn--primary">{t.ctaPrimary}</a>
-          <a href="#contact" className="btn">{t.ctaSecondary}</a>
+          <a
+            href="https://wa.me/972000000000?text=Hi%20General%20Parts%2C%20I%27d%20like%20a%20viewing."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn--primary"
+          >
+            {t.ctaPrimary}
+          </a>
+          <a
+            href="mailto:info@generalparts.example?subject=General%20Parts%20Specialist"
+            className="btn"
+          >
+            {t.ctaSecondary}
+          </a>
         </div>
         <button className="outro__return" onClick={() => window.appState.jumpTo(0)}>
           ↑ {t.returnTop}
@@ -2735,7 +2828,7 @@ function Decorative({ t }) {
 
 /* ───────── Tweaks panel ───────── */
 function TweaksPanel({ t, lang, setLang }) {
-  const [minimized, setMinimized] = useState(false);
+  const [minimized, setMinimized] = useState(true);
   const [accent, setAccent] = useState(window.appState.accent);
   const [body, setBody] = useState(window.appState.body);
   const [bloom, setBloom] = useState(window.appState.bloomTweak);
@@ -2875,6 +2968,18 @@ function App() {
   const [lang, setLang] = useLanguage();
   const t = COPY[lang];
   const [soundOn, setSoundOn] = useState(false);
+
+  // Fade chrome (topbar/dock/siderail/infocard/hotspots) when outro is fully visible
+  useEffect(() => {
+    let raf;
+    const tick = () => {
+      const fade = window.appState.progress > 0.94;
+      document.body.classList.toggle('chrome-fade', fade);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   return (
     <>
