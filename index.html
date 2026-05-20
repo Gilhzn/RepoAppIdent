@@ -117,14 +117,15 @@ img { display: block; max-width: 100%; }
   transition: opacity 800ms var(--ease), visibility 0s linear 800ms;
 }
 .preloader.done { opacity: 0; visibility: hidden; pointer-events: none; }
-.preloader__inner { text-align: center; padding-inline: 24px; max-width: 720px; }
+.preloader__inner { text-align: center; padding-inline: 16px; max-width: min(960px, 96vw); width: 100%; }
 .preloader__wordmark {
   /* Brand stays in Latin display font regardless of UI language */
   font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(40px, 9vw, 110px);
-  letter-spacing: 0.08em;
-  line-height: 0.9;
+  font-size: clamp(30px, 6.4vw, 78px);
+  letter-spacing: 0.06em;
+  line-height: 1.0;
   white-space: nowrap;
+  display: inline-block;
   background: linear-gradient(180deg, var(--ink) 0%, var(--ink) 50%, var(--gold) 50%, var(--gold) 100%);
   background-size: 100% 200%;
   background-position: 0% 0%;
@@ -313,16 +314,14 @@ img { display: block; max-width: 100%; }
   inset-inline-start: clamp(16px, 4vw, 48px);
   z-index: 25;
   max-width: min(440px, 80vw);
-  background: rgba(8, 8, 10, 0.04);
-  backdrop-filter: blur(22px) saturate(140%) brightness(0.8);
-  -webkit-backdrop-filter: blur(22px) saturate(140%) brightness(0.8);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-inline-start: 1px solid var(--gold);
-  padding: clamp(20px, 2.2vw, 28px);
+  background: transparent;
+  border: none;
+  border-inline-start: 2px solid var(--gold);
+  padding: clamp(18px, 2vw, 26px) clamp(20px, 2.2vw, 28px);
   opacity: 0;
   transform: translateY(20px);
-  box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.5);
   color: #ffffff;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85), 0 2px 14px rgba(0, 0, 0, 0.6);
 }
 .infocard.visible { animation: infocard-in 520ms var(--ease) forwards; }
 @keyframes infocard-in {
@@ -370,7 +369,7 @@ img { display: block; max-width: 100%; }
   grid-template-columns: 1fr 1fr;
   gap: 14px;
   padding-block-start: 16px;
-  border-block-start: 1px solid rgba(255, 255, 255, 0.12);
+  border-block-start: 1px solid rgba(255, 255, 255, 0.20);
 }
 .infocard__spec-label {
   font-family: var(--font-label);
@@ -594,11 +593,10 @@ img { display: block; max-width: 100%; }
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #ffffff;
-  background: rgba(8, 8, 10, 0.65);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(8, 8, 10, 0.85);
+  border: 1px solid rgba(200, 165, 103, 0.35);
   padding: 7px 11px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
   opacity: 0;
   transition: opacity 320ms var(--ease);
   font-weight: 600;
@@ -784,15 +782,13 @@ img { display: block; max-width: 100%; }
   inset-inline-end: clamp(16px, 2vw, 32px);
   z-index: 50;
   width: min(320px, calc(100vw - 32px));
-  background: rgba(8, 8, 10, 0.10);
-  backdrop-filter: blur(26px) saturate(150%) brightness(0.78);
-  -webkit-backdrop-filter: blur(26px) saturate(150%) brightness(0.78);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: transparent;
+  border: 1px solid rgba(200, 165, 103, 0.30);
   font-family: var(--font-label);
   font-size: 11px;
   color: #ffffff;
   transition: transform 320ms var(--ease), opacity 320ms var(--ease);
-  box-shadow: 0 20px 60px -20px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
 }
 .tweaks.minimized {
   transform: translateY(calc(100% + 30px));
@@ -938,17 +934,15 @@ img { display: block; max-width: 100%; }
   z-index: 49;
   width: 44px; height: 44px;
   border-radius: 50%;
-  background: rgba(10, 10, 12, 0.35);
-  backdrop-filter: blur(20px) saturate(140%);
-  -webkit-backdrop-filter: blur(20px) saturate(140%);
-  border: 1px solid rgba(244, 241, 234, 0.10);
+  background: rgba(8, 8, 10, 0.55);
+  border: 1px solid rgba(200, 165, 103, 0.35);
   display: grid;
   place-items: center;
-  color: var(--ink-dim);
+  color: var(--ink);
   cursor: pointer;
   transition: border-color 200ms, color 200ms, background 200ms;
 }
-.tweaks__fab:hover { border-color: var(--gold); color: var(--gold); }
+.tweaks__fab:hover { border-color: var(--gold); color: var(--gold); background: rgba(8, 8, 10, 0.75); }
 
 /* ───────── Skip link ───────── */
 .skip-link {
@@ -1032,7 +1026,7 @@ body.chrome-fade .decorative__bg-number {
 }
 
 @media (max-width: 480px) {
-  .preloader__wordmark { font-size: clamp(40px, 16vw, 78px); letter-spacing: 0.10em; }
+  .preloader__wordmark { font-size: clamp(24px, 10vw, 52px); letter-spacing: 0.04em; }
   .preloader__caption { font-size: 10px; letter-spacing: 0.24em; }
   .infocard { bottom: 124px; padding: 16px; }
   .infocard__title { font-size: 28px; }
@@ -2619,33 +2613,33 @@ const COPY = {
     brand: 'GENERAL PARTS',
     nav: ['אולם תצוגה', 'מנוע', 'בלמים', 'מתלים', 'קטלוג'],
     introIndex: 'פרק 01 · הקדמה',
-    introTitle: 'חלק. רצון. שלמות.',
-    introBody: 'אולם תצוגה דיגיטלי לחלפים יוקרתיים. הנדסה אנגלית, ביצוע איטלקי, עמידה גרמנית — ב-General Parts כל רכיב נבחר בקפדנות מירבית ועומד בתקני יצרן מקוריים.',
-    engineIndex: 'פרק 02 · מנוע',
-    engineTitle: 'הלב הנושם.',
-    engineBody: 'בלוק V8 בנפח 4.0 ליטר, יציקת אלומיניום קל-משקל, מכסי שסתומים זהובים מאלומיניום אנודייז. הספק שיא של 612 כוחות סוס, מומנט מקסימלי 568 ניוטון·מטר, רדיוס סיבובים עד 8,500 סלל"ד.',
+    introTitle: 'אלפי חלקים. רכב אחד שלך.',
+    introBody: 'General Parts — בית לחלפי רכב לכל סוג ולכל קטגוריה. מנוע, בלמים, מתלים, פליטה, חשמל, גוף — מקוריים ואחרי-שוק, מהמותגים המובילים בעולם. בלי לבזבז זמן: חלק שאתה צריך, באיכות שאתה רוצה.',
+    engineIndex: 'פרק 02 · מנוע והנעה',
+    engineTitle: 'הלב של הרכב.',
+    engineBody: 'מבחר רחב של חלפי מנוע: מסננים, רצועות, גלגלות, חלפי הזרקה, מערכת קירור, מערכת יניקה ומערכת פליטה. לכל רכב — מקורי או אחרי-שוק, עם אחריות.',
     brakesIndex: 'פרק 03 · בלמים',
-    brakesTitle: 'קרמיקת פחמן, גימור זהב.',
-    brakesBody: 'דיסקי בלם קרמיים-פחמניים בקוטר 410 מ"מ, סוללי 6-בוכנות מונובלוק חרוטים. עמידות תרמית עד 1,200°C, משקל ירוד ב-50% מול ברזל יציקה — תאוצה והאטה מדויקות יותר.',
+    brakesTitle: 'עצירה בטוחה, בכל תנאי.',
+    brakesBody: 'דיסקים, סוללים, רפידות וצנרת בלמים לכל סוגי הרכב — מ-OEM ועד גרסאות performance. ברזל יצוק, קרמיקת פחמן, חומרים מורכבים — בכל קוטר ולכל יישום.',
     suspensionIndex: 'פרק 04 · מתלים',
-    suspensionTitle: 'מכוון ב-24 קליקים.',
-    suspensionBody: 'מתלי קויל-אובר עם בקרת ריסון מתכווננת ידנית וקפיץ הליקלי מתקדם. גובה רכיבה מתכוונן ±25 מ"מ, ריסון ב-24 שלבים מדויקים — מותאם מסלול לכביש לפי הצורך.',
-    outroIndex: 'פרק 05 · התאמה אישית',
-    outro: ['הגדר', 'את', 'היחידה.'],
-    outroBody: 'כל חלק מותאם אישית להגדרות הרכב שלך. שעב עם מומחי General Parts לבחירת הקונפיגורציה המדויקת.',
-    ctaPrimary: 'בקש תצוגה אישית',
-    ctaSecondary: 'דבר עם מומחה',
+    suspensionTitle: 'נסיעה שמתחשבת בך.',
+    suspensionBody: 'בולמי זעזועים, מתלים, קפיצים, מסבים ושיפורי מבנה — מהיצרן ועד גרסאות מסלול. גובה רכיבה ובקרת ריסון מותאמים אישית. נוחות, יציבות ושליטה — לפי הצורך.',
+    outroIndex: 'פרק 05 · מצא את החלק שלך',
+    outro: ['החלק', 'הנכון', 'בידיים שלך.'],
+    outroBody: 'אלפי פריטים במלאי, יבוא ישיר מהיצרנים, צוות מומחים זמין לייעוץ. דבר איתנו ונמצא לך בדיוק את החלק שהרכב שלך צריך.',
+    ctaPrimary: 'צור קשר עכשיו',
+    ctaSecondary: 'דבר עם יועץ',
     returnTop: 'חזרה למעלה',
     streaming: 'טוען נכסים',
     scroll: 'גלול',
     chapters: ['הקדמה', 'מנוע', 'בלמים', 'מתלים', 'סיכום'],
-    hsValveCover: 'מכסה שסתומים · אנודייז זהב',
-    hsPlenum: 'תא יניקה דו-גיר',
-    hsPulleys: 'גלגלות + רצועת תזמון',
-    hsCaliper: 'סוללי 6-בוכנות מונובלוק',
-    hsDisc: 'דיסק קרמי-פחמני · Ø410 מ"מ',
-    hsKnob: 'בקרת ריסון · 24 שלבים',
-    hsSpring: 'קפיץ הליקלי מתקדם',
+    hsValveCover: 'מכסי שסתומים',
+    hsPlenum: 'מערכת יניקה',
+    hsPulleys: 'גלגלות ורצועות',
+    hsCaliper: 'סולל בלם',
+    hsDisc: 'דיסק בלם',
+    hsKnob: 'בקרת ריסון',
+    hsSpring: 'קפיץ מתלה',
     specMaterial: 'חומר',
     specDimension: 'מידה',
     specWeight: 'משקל',
@@ -2656,6 +2650,17 @@ const COPY = {
     specHeat: 'עמידות תרמית',
     specHeight: 'גובה',
     specDamp: 'שלבי ריסון',
+    specCategories: 'קטגוריות',
+    specBrands: 'מותגים',
+    specStock: 'מלאי',
+    specService: 'שירות',
+    specCompat: 'תאימות',
+    specDiameter: 'קטרים',
+    specTypes: 'סוגים',
+    specAdjust: 'התאמה',
+    specModes: 'מצבי נסיעה',
+    specInStock: 'במלאי',
+    specOrigin: 'מקור',
     tweaks: 'הגדרות חיות',
     tweakVisual: 'ויזואל',
     tweakAccent: 'צבע מותג',
@@ -2678,33 +2683,33 @@ const COPY = {
     brand: 'GENERAL PARTS',
     nav: ['Showroom', 'Engine', 'Brakes', 'Suspension', 'Catalogue'],
     introIndex: 'CHAPTER 01 · INTRO',
-    introTitle: 'Part. Will. Perfection.',
-    introBody: 'A digital showroom for premium automotive spare parts. English engineering, Italian execution, German durability — at General Parts every component is selected with utmost care.',
+    introTitle: 'Thousands of parts. One car — yours.',
+    introBody: 'General Parts — your source for automotive components across every category. Engine, brakes, suspension, exhaust, electrical, body — OEM and aftermarket from the world\'s leading brands. Right part, right quality, no time wasted.',
     engineIndex: 'CHAPTER 02 · ENGINE',
-    engineTitle: 'The breathing heart.',
-    engineBody: '4.0-liter V8 block, lightweight aluminum casting, gold-anodised aluminum valve covers. Peak output of 612 hp, peak torque 568 Nm, redline 8,500 rpm.',
+    engineTitle: 'The heart of the car.',
+    engineBody: 'Comprehensive engine parts catalog: filters, belts, pulleys, injection components, cooling, intake and exhaust systems. For every vehicle — OEM or aftermarket, with warranty.',
     brakesIndex: 'CHAPTER 03 · BRAKES',
-    brakesTitle: 'Carbon ceramic, gold finish.',
-    brakesBody: '410mm carbon-ceramic discs, 6-piston monobloc machined calipers. Thermal endurance up to 1,200°C, 50% lighter than cast iron — sharper acceleration and braking.',
+    brakesTitle: 'Confident stopping, every condition.',
+    brakesBody: 'Discs, calipers, pads and brake lines for every vehicle type — from OEM to performance variants. Cast iron, carbon-ceramic, composite materials — every size, every application.',
     suspensionIndex: 'CHAPTER 04 · SUSPENSION',
-    suspensionTitle: 'Tuned in 24 clicks.',
-    suspensionBody: 'Coil-over suspension with manually adjustable damping and advanced helical spring. Ride height adjustable ±25mm, damping in 24 precise clicks — track-to-street ready.',
-    outroIndex: 'CHAPTER 05 · CONFIGURE',
-    outro: ['Configure', 'your', 'piece.'],
-    outroBody: 'Every part is personalized to your vehicle configuration. Book a consultation with our General Parts specialists.',
-    ctaPrimary: 'Request a viewing',
-    ctaSecondary: 'Talk to a specialist',
+    suspensionTitle: 'A ride that fits you.',
+    suspensionBody: 'Shocks, struts, springs, bearings and structural upgrades — from factory-spec to track-tuned. Adjustable ride heights and damping rates. Comfort, stability and control — your choice.',
+    outroIndex: 'CHAPTER 05 · FIND YOUR PART',
+    outro: ['The', 'right part', 'in your hands.'],
+    outroBody: 'Thousands of items in stock, direct from manufacturers, expert team ready to advise. Talk to us — we\'ll find exactly the part your vehicle needs.',
+    ctaPrimary: 'Contact us now',
+    ctaSecondary: 'Talk to an advisor',
     returnTop: 'Return to top',
     streaming: 'STREAMING ASSETS',
     scroll: 'SCROLL',
     chapters: ['Intro', 'Engine', 'Brakes', 'Suspension', 'Outro'],
-    hsValveCover: 'Valve cover · gold anodised',
-    hsPlenum: 'Twin-scroll plenum',
-    hsPulleys: 'Pulleys + drive belt',
-    hsCaliper: '6-piston monobloc caliper',
-    hsDisc: 'Carbon-ceramic disc · Ø410mm',
-    hsKnob: 'Damping adjuster · 24 clicks',
-    hsSpring: 'Progressive helical spring',
+    hsValveCover: 'Valve covers',
+    hsPlenum: 'Intake system',
+    hsPulleys: 'Pulleys & belts',
+    hsCaliper: 'Brake caliper',
+    hsDisc: 'Brake disc',
+    hsKnob: 'Damping control',
+    hsSpring: 'Suspension spring',
     specMaterial: 'Material',
     specDimension: 'Dimension',
     specWeight: 'Weight',
@@ -2715,6 +2720,17 @@ const COPY = {
     specHeat: 'Heat tolerance',
     specHeight: 'Height',
     specDamp: 'Damping steps',
+    specCategories: 'Categories',
+    specBrands: 'Brands',
+    specStock: 'Stock',
+    specService: 'Service',
+    specCompat: 'Compatibility',
+    specDiameter: 'Sizes',
+    specTypes: 'Types',
+    specAdjust: 'Adjust',
+    specModes: 'Modes',
+    specInStock: 'In stock',
+    specOrigin: 'Source',
     tweaks: 'LIVE TWEAKS',
     tweakVisual: 'Visual',
     tweakAccent: 'Accent',
@@ -2744,8 +2760,10 @@ function getChapterInfo(chapter, t) {
         title: t.introTitle,
         body: t.introBody,
         specs: [
-          { label: t.specMaterial, value: 'Carbon · Alu · Ti' },
-          { label: t.specWarranty, value: '36mo' },
+          { label: t.specCategories, value: '8+' },
+          { label: t.specBrands, value: '50+' },
+          { label: t.specInStock, value: '24/7' },
+          { label: t.specWarranty, value: 'OEM' },
         ],
       };
     case 1:
@@ -2754,10 +2772,10 @@ function getChapterInfo(chapter, t) {
         title: t.engineTitle,
         body: t.engineBody,
         specs: [
-          { label: t.specPower, value: '612 HP' },
-          { label: t.specTorque, value: '568 Nm' },
-          { label: t.specRpm, value: '8500' },
-          { label: t.specMaterial, value: 'Alu / CF' },
+          { label: t.specBrands, value: '40+' },
+          { label: t.specCompat, value: 'All' },
+          { label: t.specOrigin, value: 'OEM+' },
+          { label: t.specWarranty, value: 'Full' },
         ],
       };
     case 2:
@@ -2766,10 +2784,10 @@ function getChapterInfo(chapter, t) {
         title: t.brakesTitle,
         body: t.brakesBody,
         specs: [
-          { label: t.specDimension, value: 'Ø410 mm' },
-          { label: t.specHeat, value: '1200°C' },
-          { label: t.specWeight, value: '-50%' },
-          { label: t.specMaterial, value: 'C-Ceramic' },
+          { label: t.specDiameter, value: '280-410+' },
+          { label: t.specMaterial, value: 'Multi' },
+          { label: t.specBrands, value: '30+' },
+          { label: t.specWarranty, value: 'Full' },
         ],
       };
     case 3:
@@ -2778,10 +2796,10 @@ function getChapterInfo(chapter, t) {
         title: t.suspensionTitle,
         body: t.suspensionBody,
         specs: [
-          { label: t.specDamp, value: '24' },
-          { label: t.specHeight, value: '±25 mm' },
-          { label: t.specMaterial, value: 'Aluminum' },
-          { label: t.specWarranty, value: '60mo' },
+          { label: t.specTypes, value: 'OEM→Track' },
+          { label: t.specAdjust, value: 'Custom' },
+          { label: t.specBrands, value: '25+' },
+          { label: t.specWarranty, value: 'Full' },
         ],
       };
     case 4:
