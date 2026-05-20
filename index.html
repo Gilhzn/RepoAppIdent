@@ -1127,20 +1127,34 @@ const lerpVec3 = (out, a, b, t) => {
 const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || window.innerWidth < 768;
 
 /* ───────── CAM milestones (verbatim from spec) ───────── */
+// Each chapter spans exactly 0.20 progress — one "slide" on desktop.
+// Waypoints are dense within each chapter so the camera glides through
+// 2-3 keyframes per chapter with easeInOut between them (no sharp cuts).
 const CAM = [
+  // Chapter 0 — INTRO (0.00 - 0.20)
   { p: 0.00, pos: [ 5.4,  1.55, -4.6 ], tgt: [ 0,    0.50, -0.2  ], fov: 34 },
-  { p: 0.14, pos: [ 4.0,  1.30, -3.8 ], tgt: [-0.1,  0.55, -0.5  ], fov: 32 },
-  { p: 0.24, pos: [ 2.3,  1.35, -2.4 ], tgt: [ 0,    1.05, -1.55 ], fov: 34 },  // dive (was 30, +13%)
-  { p: 0.34, pos: [ 1.70, 2.00, -2.30], tgt: [ 0,    1.05, -1.55 ], fov: 35 },  // ENGINE close (was 30, +17%)
-  { p: 0.42, pos: [ 1.85, 1.55, -2.55], tgt: [ 0,    0.95, -1.55 ], fov: 32 },  // engine flank (was 28, +14%)
-  { p: 0.50, pos: [ 4.8,  1.60, -3.8 ], tgt: [ 0.2,  0.65, -1.0  ], fov: 38 },
-  { p: 0.56, pos: [ 2.75, 0.65, -2.20], tgt: [ 0.83, 0.36, -1.155], fov: 30 },
-  { p: 0.62, pos: [ 1.80, 0.42, -1.65], tgt: [ 0.83, 0.36, -1.155], fov: 24 },
-  { p: 0.70, pos: [ 4.6,  1.30, -2.6 ], tgt: [ 0.4,  0.55, -0.8  ], fov: 38 },
-  { p: 0.76, pos: [ 2.20, 0.95, -0.45], tgt: [ 0.83, 0.55, -1.155], fov: 30 },
-  { p: 0.82, pos: [ 1.50, 0.70, -0.50], tgt: [ 0.83, 0.55, -1.155], fov: 28 },
-  { p: 0.92, pos: [ 5.2,  1.55,  2.0 ], tgt: [ 0,    0.55, -0.4  ], fov: 32 },
-  { p: 1.00, pos: [-5.8,  2.45, -6.4 ], tgt: [ 0,    0.6,   0    ], fov: 42 },
+  { p: 0.10, pos: [ 4.6,  1.40, -4.0 ], tgt: [-0.05, 0.60, -0.5  ], fov: 33 },
+  { p: 0.18, pos: [ 3.2,  1.30, -3.0 ], tgt: [-0.05, 0.80, -1.10 ], fov: 33 },
+
+  // Chapter 1 — ENGINE (0.20 - 0.40)
+  { p: 0.22, pos: [ 2.4,  1.50, -2.5 ], tgt: [ 0,    1.00, -1.55 ], fov: 34 },
+  { p: 0.30, pos: [ 1.70, 2.00, -2.30], tgt: [ 0,    1.05, -1.55 ], fov: 36 },
+  { p: 0.36, pos: [ 1.95, 1.50, -2.55], tgt: [ 0,    0.95, -1.55 ], fov: 33 },
+
+  // Chapter 2 — BRAKES (0.40 - 0.60)
+  { p: 0.42, pos: [ 3.4,  1.10, -2.6 ], tgt: [ 0.35, 0.55, -1.0  ], fov: 36 },
+  { p: 0.48, pos: [ 2.50, 0.65, -2.00], tgt: [ 0.83, 0.40, -1.155], fov: 30 },
+  { p: 0.54, pos: [ 1.85, 0.45, -1.70], tgt: [ 0.83, 0.36, -1.155], fov: 26 },
+
+  // Chapter 3 — SUSPENSION (0.60 - 0.80)
+  { p: 0.62, pos: [ 3.2,  1.10, -1.60], tgt: [ 0.45, 0.55, -0.7  ], fov: 36 },
+  { p: 0.68, pos: [ 2.20, 0.95, -0.50], tgt: [ 0.83, 0.55, -1.155], fov: 30 },
+  { p: 0.74, pos: [ 1.55, 0.75, -0.55], tgt: [ 0.83, 0.55, -1.155], fov: 28 },
+
+  // Chapter 4 — OUTRO (0.80 - 1.00)
+  { p: 0.84, pos: [ 3.5,  1.40, -0.2 ], tgt: [ 0.25, 0.55, -0.4  ], fov: 36 },
+  { p: 0.92, pos: [-1.0,  1.85, -4.0 ], tgt: [ 0,    0.55,  0    ], fov: 38 },
+  { p: 1.00, pos: [-5.8,  2.45, -6.4 ], tgt: [ 0,    0.60,  0    ], fov: 42 },
 ];
 
 /* ───────── Scene ───────── */
@@ -2568,9 +2582,10 @@ function animate(now) {
   }
 
   // Part opacities
-  const oEngine = partOpacityFor(currentProgress, [0.20, 0.28, 0.44, 0.50]);
-  const oBrakes = partOpacityFor(currentProgress, [0.54, 0.60, 0.66, 0.72]);
-  const oSusp = partOpacityFor(currentProgress, [0.74, 0.80, 0.86, 0.92]);
+  // Part visibility windows aligned to the new chapter ranges (0.20 wide)
+  const oEngine = partOpacityFor(currentProgress, [0.20, 0.26, 0.36, 0.40]);
+  const oBrakes = partOpacityFor(currentProgress, [0.40, 0.46, 0.56, 0.60]);
+  const oSusp   = partOpacityFor(currentProgress, [0.60, 0.66, 0.76, 0.80]);
 
   engineKit.materials.forEach(m => {
     m.opacity = oEngine;
@@ -2596,10 +2611,11 @@ function animate(now) {
 
   // Chapter for HUD
   let chapter = 0;
-  if (currentProgress > 0.20 && currentProgress < 0.52) chapter = 1;
-  else if (currentProgress >= 0.52 && currentProgress < 0.72) chapter = 2;
-  else if (currentProgress >= 0.72 && currentProgress < 0.90) chapter = 3;
-  else if (currentProgress >= 0.90) chapter = 4;
+  // Each chapter occupies exactly 0.20 progress = one full slide on desktop
+  if (currentProgress >= 0.20 && currentProgress < 0.40) chapter = 1;
+  else if (currentProgress >= 0.40 && currentProgress < 0.60) chapter = 2;
+  else if (currentProgress >= 0.60 && currentProgress < 0.80) chapter = 3;
+  else if (currentProgress >= 0.80) chapter = 4;
   window.appState.chapter = chapter;
 
   // Update hotspot projections (for React to read)
@@ -2918,7 +2934,7 @@ function TopBar({ t, lang, setLang, soundOn, toggleSound }) {
           <button
             key={i}
             className={i === ch ? 'active' : ''}
-            onClick={() => window.appState.jumpTo(i === 0 ? 0 : i === 1 ? 0.34 : i === 2 ? 0.62 : i === 3 ? 0.82 : 0.99)}
+            onClick={() => window.appState.jumpTo(i === 0 ? 0 : i === 1 ? 0.30 : i === 2 ? 0.50 : i === 3 ? 0.70 : 0.99)}
           >
             {label}
           </button>
@@ -2955,7 +2971,7 @@ function TopBar({ t, lang, setLang, soundOn, toggleSound }) {
 function SideRail({ t }) {
   const state = useAppFrame();
   const ch = state.chapter;
-  const targets = [0, 0.34, 0.62, 0.82, 0.99];
+  const targets = [0, 0.30, 0.50, 0.70, 0.99];
   return (
     <div className="siderail" aria-label="פרקים">
       {t.chapters.map((label, i) => (
@@ -3004,7 +3020,7 @@ function BottomDock({ t }) {
   const p = state.progress;
   const ch = state.chapter;
   const pct = Math.round(p * 100);
-  const targets = [0, 0.34, 0.62, 0.82, 0.99];
+  const targets = [0, 0.30, 0.50, 0.70, 0.99];
   return (
     <footer className="dock">
       <div className="dock__progress" aria-label={`התקדמות ${pct} אחוז`}>
@@ -3061,13 +3077,13 @@ function Hotspots({ t }) {
 
   if (ch === 1) {
     activeSet = positions.engine;
-    activeOpacity = windowOpacity(p, [0.24, 0.30, 0.44, 0.48]);
+    activeOpacity = windowOpacity(p, [0.24, 0.28, 0.36, 0.40]);
   } else if (ch === 2) {
     activeSet = positions.brakes;
-    activeOpacity = windowOpacity(p, [0.58, 0.61, 0.66, 0.70]);
+    activeOpacity = windowOpacity(p, [0.46, 0.50, 0.56, 0.60]);
   } else if (ch === 3) {
     activeSet = positions.suspension;
-    activeOpacity = windowOpacity(p, [0.78, 0.81, 0.86, 0.90]);
+    activeOpacity = windowOpacity(p, [0.66, 0.70, 0.76, 0.80]);
   }
 
   activeOpacity = Math.max(0, Math.min(1, activeOpacity));
@@ -3283,9 +3299,9 @@ function TweaksPanel({ t, lang, setLang }) {
         <div className="tweaks__section">
           <h4>{t.tweakJump}</h4>
           <div className="tweaks__jumps">
-            <button onClick={() => window.appState.jumpTo(0.34)}>{t.tweakJumpEngine}</button>
-            <button onClick={() => window.appState.jumpTo(0.62)}>{t.tweakJumpBrakes}</button>
-            <button onClick={() => window.appState.jumpTo(0.82)}>{t.tweakJumpSuspension}</button>
+            <button onClick={() => window.appState.jumpTo(0.30)}>{t.tweakJumpEngine}</button>
+            <button onClick={() => window.appState.jumpTo(0.50)}>{t.tweakJumpBrakes}</button>
+            <button onClick={() => window.appState.jumpTo(0.70)}>{t.tweakJumpSuspension}</button>
             <button onClick={() => window.appState.jumpTo(0.99)}>{t.tweakJumpOutro}</button>
           </div>
           <button
