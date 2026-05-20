@@ -1069,7 +1069,7 @@ window.appState = {
   accent: '#c8a567',
   body: '#0a0a0c',
   bloomTweak: 1.0,
-  lerpStrength: 0.08,
+  lerpStrength: 0.05,
   scrollLength: 1.0,
   language: localStorage.getItem('gp-lang') || 'he',
   hotspots: {
@@ -2564,7 +2564,7 @@ function animate(now) {
 
   // Engine slow sway
   if (engineKit.group) {
-    engineKit.group.rotation.y = Math.sin(now * 0.00015) * 0.18;
+    engineKit.group.rotation.y = Math.sin(now * 0.00010) * 0.10;
   }
 
   // Chapter for HUD
